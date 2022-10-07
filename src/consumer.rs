@@ -2,7 +2,6 @@ use flume::Sender;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
 use rdkafka::{
-    config::RDKafkaLogLevel,
     consumer::{Consumer, StreamConsumer},
     message::BorrowedMessage,
     ClientConfig, Message,
@@ -28,7 +27,7 @@ pub async fn consumer(config: FilterConfig, filter_tx: Sender<UpdateAccount>) {
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", &config.session_timeout_ms)
         .set("enable.auto.commit", "true")
-        .set_log_level(RDKafkaLogLevel::Info)
+        .set_log_level((&config.rdkafka_log_level).into())
         .create()
         .expect("Consumer creation failed");
 
