@@ -153,7 +153,7 @@ pub async fn insert_into_account_audit(
 pub async fn db_statement_executor(
     config: FilterConfig,
     mut client: Arc<Client>,
-    db_queue: Arc<SegQueue<(Statement, DbAccountInfo)>>,
+    db_queue: Arc<SegQueue<DbAccountInfo>>,
 ) {
     let mut idle_interval = tokio::time::interval(Duration::from_millis(500));
     loop {
@@ -165,17 +165,28 @@ pub async fn db_statement_executor(
             idle_interval.tick().await;
         }
 
-        if let Some((statement, db_account_info)) = db_queue.pop() {
+        if let Some(db_account_info) = db_queue.pop() {
             let client = client.clone();
             let db_queue = db_queue.clone();
 
             tokio::spawn(async move {
+                let statement = match build_single_account_insert_statement(client.clone()).await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!(
+                            "Failed to execute build_single_account_insert_statement, error {e}"
+                        );
+                        db_queue.push(db_account_info);
+                        return;
+                    }
+                };
+
                 if let Err(error) =
                     insert_into_account_audit(&db_account_info, &statement, client).await
                 {
                     error!("Failed to insert the data to account_audit, error: {error}");
                     // Push statement and account_info back to the database queue
-                    db_queue.push((statement, db_account_info));
+                    db_queue.push(db_account_info);
                 }
             });
         }

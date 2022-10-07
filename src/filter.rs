@@ -1,20 +1,15 @@
 use std::sync::Arc;
 
-use crate::{
-    config::FilterConfig,
-    db::{build_single_account_insert_statement, DbAccountInfo},
-};
+use crate::{config::FilterConfig, db::DbAccountInfo};
 use anyhow::Result;
 use crossbeam_queue::SegQueue;
 use flume::Receiver;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
-use tokio_postgres::{Client, Statement};
 
 async fn process_account_info(
     config: FilterConfig,
-    client: Arc<Client>,
-    db_queue: Arc<SegQueue<(Statement, DbAccountInfo)>>,
+    db_queue: Arc<SegQueue<DbAccountInfo>>,
     update_account: UpdateAccount,
 ) -> Result<()> {
     match &update_account.account {
@@ -25,8 +20,7 @@ async fn process_account_info(
             if config.filter_exceptions.contains(&pubkey)
                 || config.filter_include_owners.contains(&owner)
             {
-                let statement = build_single_account_insert_statement(client.clone()).await?;
-                db_queue.push((statement, update_account.try_into()?));
+                db_queue.push(update_account.try_into()?);
             }
         }
     }
@@ -35,19 +29,16 @@ async fn process_account_info(
 
 pub async fn filter(
     config: FilterConfig,
-    client: Arc<Client>,
-    db_queue: Arc<SegQueue<(Statement, DbAccountInfo)>>,
+    db_queue: Arc<SegQueue<DbAccountInfo>>,
     filter_rx: Receiver<UpdateAccount>,
 ) {
     loop {
         if let Ok(update_account) = filter_rx.recv_async().await {
             let config = config.clone();
             let db_queue = db_queue.clone();
-            let client = client.clone();
 
             tokio::spawn(async move {
-                if let Err(e) = process_account_info(config, client, db_queue, update_account).await
-                {
+                if let Err(e) = process_account_info(config, db_queue, update_account).await {
                     error!("Failed to process account info, error: {e}");
                 }
             });

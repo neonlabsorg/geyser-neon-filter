@@ -17,7 +17,6 @@ use fast_log::{
 use filter::filter;
 use log::error;
 use tokio::fs;
-use tokio_postgres::Statement;
 
 #[tokio::main]
 async fn main() {
@@ -36,18 +35,14 @@ async fn main() {
     let result: serde_json::Result<FilterConfig> = serde_json::from_str(&contents);
     match result {
         Ok(config) => {
-            let db_queue: Arc<SegQueue<(Statement, DbAccountInfo)>> = Arc::new(SegQueue::new());
+            let db_queue: Arc<SegQueue<DbAccountInfo>> = Arc::new(SegQueue::new());
             logger.set_level((&config.global_log_level).into());
 
             let client = initialize_db_client(config.clone()).await;
 
             let (filter_tx, filter_rx) = flume::unbounded();
-            let filter_loop_handle = tokio::spawn(filter(
-                config.clone(),
-                client.clone(),
-                db_queue.clone(),
-                filter_rx,
-            ));
+            let filter_loop_handle =
+                tokio::spawn(filter(config.clone(), db_queue.clone(), filter_rx));
             let consumer_loop_handle = tokio::spawn(consumer(config.clone(), filter_tx));
             let db_statement_executor_handle =
                 tokio::spawn(db_statement_executor(config, client, db_queue));
