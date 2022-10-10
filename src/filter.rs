@@ -8,7 +8,7 @@ use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
 
 async fn process_account_info(
-    config: FilterConfig,
+    config: Arc<FilterConfig>,
     db_queue: Arc<SegQueue<DbAccountInfo>>,
     update_account: UpdateAccount,
 ) -> Result<()> {
@@ -28,7 +28,7 @@ async fn process_account_info(
 }
 
 pub async fn filter(
-    config: FilterConfig,
+    config: Arc<FilterConfig>,
     db_queue: Arc<SegQueue<DbAccountInfo>>,
     filter_rx: Receiver<UpdateAccount>,
 ) {

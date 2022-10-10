@@ -71,7 +71,7 @@ impl TryFrom<UpdateAccount> for DbAccountInfo {
     }
 }
 
-pub async fn initialize_db_client(config: FilterConfig) -> Arc<Client> {
+pub async fn initialize_db_client(config: Arc<FilterConfig>) -> Arc<Client> {
     let client;
     let mut interval = tokio::time::interval(Duration::from_secs(2));
     loop {
@@ -92,20 +92,20 @@ pub async fn initialize_db_client(config: FilterConfig) -> Arc<Client> {
     client
 }
 
-async fn connect_to_db(config: FilterConfig) -> Result<Arc<Client>> {
+async fn connect_to_db(config: Arc<FilterConfig>) -> Result<Arc<Client>> {
     let (client, connection) =
         tokio_postgres::connect(&config.postgres_connection_str, NoTls).await?;
 
     tokio::spawn(async move {
         if let Err(e) = connection.await {
-            error!("Connection error: {}", e);
+            error!("Postgres connection error: {}", e);
         }
     });
 
     Ok(Arc::new(client))
 }
 
-pub async fn build_single_account_insert_statement(client: Arc<Client>) -> Result<Statement> {
+pub async fn create_account_insert_statement(client: Arc<Client>) -> Result<Statement> {
     let stmt = "INSERT INTO account AS acct (pubkey, slot, owner, lamports, executable, rent_epoch, data, write_version, updated_on, txn_signature) \
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) \
     ON CONFLICT (pubkey) DO UPDATE SET slot=excluded.slot, owner=excluded.owner, lamports=excluded.lamports, executable=excluded.executable, rent_epoch=excluded.rent_epoch, \
@@ -151,11 +151,12 @@ pub async fn insert_into_account_audit(
 }
 
 pub async fn db_statement_executor(
-    config: FilterConfig,
+    config: Arc<FilterConfig>,
     mut client: Arc<Client>,
     db_queue: Arc<SegQueue<DbAccountInfo>>,
 ) {
     let mut idle_interval = tokio::time::interval(Duration::from_millis(500));
+
     loop {
         if client.is_closed() {
             client = initialize_db_client(config.clone()).await;
@@ -170,12 +171,10 @@ pub async fn db_statement_executor(
             let db_queue = db_queue.clone();
 
             tokio::spawn(async move {
-                let statement = match build_single_account_insert_statement(client.clone()).await {
+                let statement = match create_account_insert_statement(client.clone()).await {
                     Ok(s) => s,
                     Err(e) => {
-                        error!(
-                            "Failed to execute build_single_account_insert_statement, error {e}"
-                        );
+                        error!("Failed to execute create_account_insert_statement, error {e}");
                         db_queue.push(db_account_info);
                         return;
                     }
@@ -185,7 +184,7 @@ pub async fn db_statement_executor(
                     insert_into_account_audit(&db_account_info, &statement, client).await
                 {
                     error!("Failed to insert the data to account_audit, error: {error}");
-                    // Push statement and account_info back to the database queue
+                    // Push account_info back to the database queue
                     db_queue.push(db_account_info);
                 }
             });

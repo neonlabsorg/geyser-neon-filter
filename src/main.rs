@@ -35,7 +35,9 @@ async fn main() {
     let result: serde_json::Result<FilterConfig> = serde_json::from_str(&contents);
     match result {
         Ok(config) => {
+            let config = Arc::new(config);
             let db_queue: Arc<SegQueue<DbAccountInfo>> = Arc::new(SegQueue::new());
+
             logger.set_level((&config.global_log_level).into());
 
             let client = initialize_db_client(config.clone()).await;
