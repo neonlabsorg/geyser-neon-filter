@@ -8,11 +8,12 @@ configuration file looks like the following:
 {
     "bootstrap_servers": "167.235.75.213:9092,159.69.197.26:9092,167.235.151.85:9092",
     "postgres_connection_str": "postgresql://username:password@1.1.1.1:3333",
+    "kafka_consumer_group_id": "group_id",
     "update_account_topic": "update_account",
     "session_timeout_ms": "5000",
     "filter_include_owners" : ["put_base58_string","put_base58_string"],
     "filter_exceptions" : ["put_base58_string","put_base58_string"],
-    "rdkafka_log_level": "Info",
-    "global_log_level": "Info",
+    "kafka_log_level": "Info",
+    "global_log_level": "Info"
 }
 ```

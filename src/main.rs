@@ -28,6 +28,8 @@ async fn main() {
     ))
     .expect("Failed to initialize fast_log");
 
+    logger.set_level(log::LevelFilter::Debug);
+
     let contents = fs::read_to_string("filter_config.json")
         .await
         .expect("Failed to read filter_config.json");

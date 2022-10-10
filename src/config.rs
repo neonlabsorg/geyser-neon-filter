@@ -73,6 +73,7 @@ impl From<&GlobalLogLevel> for LevelFilter {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FilterConfig {
     pub bootstrap_servers: String,
+    pub kafka_consumer_group_id: String,
     pub postgres_connection_str: String,
     pub update_account_topic: String,
     pub session_timeout_ms: String,
@@ -80,6 +81,6 @@ pub struct FilterConfig {
     pub filter_include_owners: Vec<String>,
     // Exception list for filter ( public keys from 32 to 44 characters in base58 )
     pub filter_exceptions: Vec<String>,
-    pub rdkafka_log_level: LogLevel,
+    pub kafka_log_level: LogLevel,
     pub global_log_level: GlobalLogLevel,
 }

@@ -8,6 +8,7 @@ use chrono::Utc;
 use crossbeam_queue::SegQueue;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
+use log::warn;
 use tokio_postgres::NoTls;
 use tokio_postgres::{Client, Statement};
 
@@ -159,6 +160,7 @@ pub async fn db_statement_executor(
 
     loop {
         if client.is_closed() {
+            warn!("Postgres client was closed");
             client = initialize_db_client(config.clone()).await;
         }
 
