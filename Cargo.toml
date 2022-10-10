@@ -6,6 +6,7 @@ description = "Neon geyser filter"
 authors = ["NeonLabs Maintainers <maintainers@neonlabs.org>"]
 
 [dependencies]
+chrono = { version = "0.4.22", features = ["serde"] }
 tokio = { version = "1.21.2", features = ["full"] }
 rdkafka = { version = "0.28.0", features = ["cmake-build"] }
 serde = "1.0.145"
@@ -14,6 +15,7 @@ kafka_common = { git = "https://github.com/neonlabsorg/geyser-neon-plugin.git", 
 log = "0.4.17"
 fast_log = { version = "1.5.40" }
 flume = "0.10.14"
-tokio-postgres = "0.7.7"
+tokio-postgres = { version = "0.7.7", features = ["with-chrono-0_4"] }
 anyhow = "1.0.65"
 bs58 = "0.4.0"
+crossbeam-queue = "0.3.6"

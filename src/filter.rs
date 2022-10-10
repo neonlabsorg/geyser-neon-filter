@@ -1,50 +1,47 @@
 use std::sync::Arc;
 
-use crate::config::FilterConfig;
+use crate::{config::FilterConfig, db::DbAccountInfo};
 use anyhow::Result;
+use crossbeam_queue::SegQueue;
 use flume::Receiver;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
-use tokio_postgres::{Client, NoTls};
 
-async fn connect_to_db(config: FilterConfig) -> Result<Client> {
-    let (client, connection) =
-        tokio_postgres::connect(&config.postgres_connection_str, NoTls).await?;
-
-    tokio::spawn(async move {
-        if let Err(e) = connection.await {
-            error!("Connection error: {}", e);
-        }
-    });
-
-    Ok(client)
-}
-
-async fn filter_and_send(
-    _config: FilterConfig,
-    _client: Arc<Client>,
+async fn process_account_info(
+    config: Arc<FilterConfig>,
+    db_queue: Arc<SegQueue<DbAccountInfo>>,
     update_account: UpdateAccount,
 ) -> Result<()> {
-    match update_account.account {
-        kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_1(_) => {}
-        kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_2(_) => {}
+    match &update_account.account {
+        kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_1(_) => unimplemented!(),
+        kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_2(account_info) => {
+            let owner = bs58::encode(&account_info.owner).into_string();
+            let pubkey = bs58::encode(&account_info.pubkey).into_string();
+            if config.filter_exceptions.contains(&pubkey)
+                || config.filter_include_owners.contains(&owner)
+            {
+                db_queue.push(update_account.try_into()?);
+            }
+        }
     }
     Ok(())
 }
 
-pub async fn filter(config: FilterConfig, filter_rx: Receiver<UpdateAccount>) {
-    let client = match connect_to_db(config.clone()).await {
-        Ok(client) => Arc::new(client),
-        Err(e) => panic!("Failed to connect to the database, error {e}"),
-    };
-
+pub async fn filter(
+    config: Arc<FilterConfig>,
+    db_queue: Arc<SegQueue<DbAccountInfo>>,
+    filter_rx: Receiver<UpdateAccount>,
+) {
     loop {
         if let Ok(update_account) = filter_rx.recv_async().await {
-            tokio::spawn(filter_and_send(
-                config.clone(),
-                client.clone(),
-                update_account,
-            ));
+            let config = config.clone();
+            let db_queue = db_queue.clone();
+
+            tokio::spawn(async move {
+                if let Err(e) = process_account_info(config, db_queue, update_account).await {
+                    error!("Failed to process account info, error: {e}");
+                }
+            });
         }
     }
 }

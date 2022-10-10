@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use flume::Sender;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
 use rdkafka::{
-    config::RDKafkaLogLevel,
     consumer::{Consumer, StreamConsumer},
     message::BorrowedMessage,
     ClientConfig, Message,
@@ -22,13 +23,13 @@ pub fn extract_from_message<'a>(message: &'a BorrowedMessage<'a>) -> Option<&'a 
     payload
 }
 
-pub async fn consumer(config: FilterConfig, filter_tx: Sender<UpdateAccount>) {
+pub async fn consumer(config: Arc<FilterConfig>, filter_tx: Sender<UpdateAccount>) {
     let consumer: StreamConsumer = ClientConfig::new()
         .set("bootstrap.servers", &config.bootstrap_servers)
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", &config.session_timeout_ms)
         .set("enable.auto.commit", "true")
-        .set_log_level(RDKafkaLogLevel::Info)
+        .set_log_level((&config.rdkafka_log_level).into())
         .create()
         .expect("Consumer creation failed");
 
