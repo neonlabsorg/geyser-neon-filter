@@ -2,8 +2,9 @@
 This service filters incoming data from Kafka by account owner and puts the result in the Postgres database.
 
 ### Configuration File Format
-The service is configured using configuration file. An example
-configuration file looks like the following:
+By default, the service is configured using a configuration file named filter_config.json.
+You can change the path to the config file by command line option --config or -c
+An example configuration file looks like the following:
 ```
 {
     "bootstrap_servers": "167.235.75.213:9092,159.69.197.26:9092,167.235.151.85:9092",
