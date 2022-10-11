@@ -25,11 +25,12 @@ pub fn extract_from_message<'a>(message: &'a BorrowedMessage<'a>) -> Option<&'a 
 
 pub async fn consumer(config: Arc<FilterConfig>, filter_tx: Sender<UpdateAccount>) {
     let consumer: StreamConsumer = ClientConfig::new()
+        .set("group.id", &config.kafka_consumer_group_id)
         .set("bootstrap.servers", &config.bootstrap_servers)
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", &config.session_timeout_ms)
         .set("enable.auto.commit", "true")
-        .set_log_level((&config.rdkafka_log_level).into())
+        .set_log_level((&config.kafka_log_level).into())
         .create()
         .expect("Consumer creation failed");
 
@@ -42,14 +43,18 @@ pub async fn consumer(config: Arc<FilterConfig>, filter_tx: Sender<UpdateAccount
             Ok(message) => {
                 if let Some(payload) = extract_from_message(&message) {
                     let result: serde_json::Result<UpdateAccount> = serde_json::from_str(payload);
-                    match result {
-                        Ok(update_account) => {
-                            if let Err(e) = filter_tx.send_async(update_account).await {
-                                error!("Failed to send the data, error {e}");
+                    let filter_tx = filter_tx.clone();
+
+                    tokio::spawn(async move {
+                        match result {
+                            Ok(update_account) => {
+                                if let Err(e) = filter_tx.send_async(update_account).await {
+                                    error!("Failed to send the data, error {e}");
+                                }
                             }
+                            Err(e) => error!("Failed to deserialize UpdateAccount {e}"),
                         }
-                        Err(e) => error!("Failed to deserialize UpdateAccount {e}"),
-                    }
+                    });
                 }
             }
             Err(e) => error!("Kafka consumer error: {}", e),

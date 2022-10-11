@@ -410,6 +410,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap"
+version = "4.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "385007cbbed899260395a4107435fead4cad80684461b3cc78238bdcb0bad58f"
+dependencies = [
+ "atty",
+ "bitflags",
+ "clap_lex",
+ "strsim",
+ "termcolor",
+]
+
+[[package]]
+name = "clap_lex"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d4198f73e42b4936b35b5bb248d81d2b595ecb170da0bac7655c54eedfa8da8"
+dependencies = [
+ "os_str_bytes",
+]
+
+[[package]]
 name = "cmake"
 version = "0.1.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -918,6 +940,7 @@ dependencies = [
  "anyhow",
  "bs58",
  "chrono",
+ "clap",
  "crossbeam-queue",
  "fast_log",
  "flume",
@@ -1455,6 +1478,12 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "os_str_bytes"
+version = "6.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ff7415e9ae3fff1225851df9e0d9e4e5479f947619774677a63572e55e80eff"
 
 [[package]]
 name = "parking_lot"
@@ -2525,6 +2554,12 @@ dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
+
+[[package]]
+name = "strsim"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "subtle"
