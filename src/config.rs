@@ -79,8 +79,8 @@ pub struct FilterConfig {
     pub session_timeout_ms: String,
     // Filter by account owners in base58
     pub filter_include_owners: Vec<String>,
-    // Exception list for filter ( public keys from 32 to 44 characters in base58 )
-    pub filter_exceptions: Vec<String>,
+    // Alway include list for filter ( public keys from 32 to 44 characters in base58 )
+    pub filter_include_pubkeys: Vec<String>,
     pub kafka_log_level: LogLevel,
     pub global_log_level: GlobalLogLevel,
 }
