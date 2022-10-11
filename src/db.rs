@@ -160,7 +160,7 @@ pub async fn db_statement_executor(
 
     loop {
         if client.is_closed() {
-            warn!("Postgres client was closed");
+            warn!("Postgres client was unexpectedly closed");
             client = initialize_db_client(config.clone()).await;
         }
 

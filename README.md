@@ -7,10 +7,10 @@ configuration file looks like the following:
 ```
 {
     "bootstrap_servers": "167.235.75.213:9092,159.69.197.26:9092,167.235.151.85:9092",
-    "postgres_connection_str": "postgresql://username:password@1.1.1.1:3333",
+    "postgres_connection_str": "postgresql://username:password@1.1.1.1:3333/neon-db",
     "kafka_consumer_group_id": "group_id",
     "update_account_topic": "update_account",
-    "session_timeout_ms": "5000",
+    "session_timeout_ms": "45000",
     "filter_include_owners" : ["put_base58_string","put_base58_string"],
     "filter_exceptions" : ["put_base58_string","put_base58_string"],
     "kafka_log_level": "Info",

@@ -55,6 +55,9 @@ async fn main() {
             let _ = filter_loop_handle.await;
             let _ = db_statement_executor_handle.await;
         }
-        Err(e) => error!("Failed to parse filter config, error {e}"),
+        Err(e) => {
+            eprintln!("Failed to parse filter_config.json, error {e}");
+            error!("Failed to parse filter_config.json, error {e}");
+        }
     }
 }
