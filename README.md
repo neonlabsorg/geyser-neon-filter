@@ -14,7 +14,7 @@ An example configuration file looks like the following:
     "update_account_topic": "update_account",
     "session_timeout_ms": "45000",
     "filter_include_owners" : ["put_base58_string","put_base58_string"],
-    "filter_exceptions" : ["put_base58_string","put_base58_string"],
+    "filter_include_pubkeys" : ["put_base58_string","put_base58_string"],
     "kafka_log_level": "Info",
     "global_log_level": "Info"
 }

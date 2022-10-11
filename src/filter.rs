@@ -17,7 +17,7 @@ async fn process_account_info(
         kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_2(account_info) => {
             let owner = bs58::encode(&account_info.owner).into_string();
             let pubkey = bs58::encode(&account_info.pubkey).into_string();
-            if config.filter_exceptions.contains(&pubkey)
+            if config.filter_include_pubkeys.contains(&pubkey)
                 || config.filter_include_owners.contains(&owner)
             {
                 db_queue.push(update_account.try_into()?);
