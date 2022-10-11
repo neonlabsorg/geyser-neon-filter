@@ -3,7 +3,8 @@ This service filters incoming data from Kafka by account owner and puts the resu
 
 ### Configuration File Format
 By default, the service is configured using a configuration file named filter_config.json.
-You can change the path to the config file by command line option --config or -c
+You can change the path to the config file by command line option **--config** or **-c**
+\
 An example configuration file looks like the following:
 ```
 {
