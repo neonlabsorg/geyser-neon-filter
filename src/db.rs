@@ -8,6 +8,7 @@ use chrono::Utc;
 use crossbeam_queue::SegQueue;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
+use log::info;
 use log::warn;
 use tokio_postgres::NoTls;
 use tokio_postgres::{Client, Statement};
@@ -78,14 +79,12 @@ pub async fn initialize_db_client(config: Arc<FilterConfig>) -> Arc<Client> {
     loop {
         match connect_to_db(config.clone()).await {
             Ok(c) => {
+                info!("A new Postgres client was created and successfully connected to the server");
                 client = c;
                 break;
             }
             Err(e) => {
-                error!(
-                    "Failed to connect to the database: {}, error: {e}",
-                    config.postgres_connection_str
-                );
+                error!("Failed to connect to the database, error: {e}",);
                 interval.tick().await;
             }
         };
