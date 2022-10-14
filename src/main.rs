@@ -52,7 +52,7 @@ async fn main() {
 
     let contents = fs::read_to_string(config_path)
         .await
-        .expect("Failed to read {config_path}");
+        .unwrap_or_else(|_| panic!("Failed to read config: {config_path}"));
 
     let result: serde_json::Result<FilterConfig> = serde_json::from_str(&contents);
     match result {
