@@ -83,6 +83,7 @@ jobs:
           args: -- -D warnings
 
   build_docker_image:
+    needs: [check, test, fmt, clippy]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
