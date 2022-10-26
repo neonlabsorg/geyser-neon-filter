@@ -1,8 +1,0 @@
-[package]
-name = "geyser-neon-filter-v2"
-version = "2.0.0"
-edition = "2021"
-description = "Neon geyser filter"
-authors = ["NeonLabs Maintainers <maintainers@neonlabs.org>"]
-
-[dependencies]

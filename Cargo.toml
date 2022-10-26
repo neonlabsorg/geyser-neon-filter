@@ -1,8 +1,7 @@
 [workspace]
 
 members = [
-    "v1",
-    "v2"
+    "v1-simple"
 ]
 
 [profile.release]
