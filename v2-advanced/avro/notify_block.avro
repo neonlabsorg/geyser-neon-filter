@@ -1,0 +1,76 @@
+{
+  "name": "notifyblock",
+  "type": "record",
+  "namespace": "notify_block",
+  "fields": [
+    {
+      "name": "block_info",
+      "type": {
+        "name": "block_info",
+        "type": "record",
+        "fields": [
+          {
+            "name": "V0_0_1",
+            "type": {
+              "name": "V0_0_1",
+              "type": "record",
+              "fields": [
+                {
+                  "name": "slot",
+                  "type": "int"
+                },
+                {
+                  "name": "blockhash",
+                  "type": "string"
+                },
+                {
+                  "name": "rewards",
+                  "type": {
+                    "type": "array",
+                    "items": {
+                      "name": "rewards_record",
+                      "type": "record",
+                      "fields": [
+                        {
+                          "name": "pubkey",
+                          "type": "string"
+                        },
+                        {
+                          "name": "lamports",
+                          "type": "int"
+                        },
+                        {
+                          "name": "postBalance",
+                          "type": "long"
+                        },
+                        {
+                          "name": "rewardType",
+                          "type": "string"
+                        },
+                        {
+                          "name": "commission",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "block_time",
+                  "type": "int"
+                },
+                {
+                  "name": "block_height",
+                  "type": "int"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

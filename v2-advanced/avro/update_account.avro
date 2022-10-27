@@ -1,0 +1,77 @@
+{
+  "name": "updateo_account",
+  "type": "record",
+  "namespace": "update_account",
+  "fields": [
+    {
+      "name": "account",
+      "type": {
+        "name": "account",
+        "type": "record",
+        "fields": [
+          {
+            "name": "V0_0_2",
+            "type": {
+              "name": "V0_0_2",
+              "type": "record",
+              "fields": [
+                {
+                  "name": "pubkey",
+                  "type": {
+                    "type": "array",
+                    "items": "int"
+                  }
+                },
+                {
+                  "name": "lamports",
+                  "type": "int"
+                },
+                {
+                  "name": "owner",
+                  "type": {
+                    "type": "array",
+                    "items": "int"
+                  }
+                },
+                {
+                  "name": "executable",
+                  "type": "boolean"
+                },
+                {
+                  "name": "rent_epoch",
+                  "type": "int"
+                },
+                {
+                  "name": "data",
+                  "type": {
+                    "type": "array",
+                    "items": "int"
+                  }
+                },
+                {
+                  "name": "write_version",
+                  "type": "int"
+                },
+                {
+                  "name": "txn_signature",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "slot",
+      "type": "int"
+    },
+    {
+      "name": "is_startup",
+      "type": "boolean"
+    }
+  ]
+}
