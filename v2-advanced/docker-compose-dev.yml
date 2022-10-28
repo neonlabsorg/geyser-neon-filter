@@ -8,25 +8,95 @@ services:
         condition: service_healthy
     links:
       - kafka
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: wget --spider -q 0.0.0.0:8123/ping
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
   kafka:
     image: docker.io/bitnami/kafka:3.3.1
     environment:
-      KAFKA_CFG_BROKER_ID: "1"
+      KAFKA_BROKER_ID: 1
       KAFKA_ENABLE_KRAFT: yes
       KAFKA_CFG_PROCESS_ROLES: broker,controller
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
-      KAFKA_BROKER_ID: 1
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@127.0.0.1:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
       ALLOW_PLAINTEXT_LISTENER: yes
     ports:
       - 9092:9092
-      - 9093:9093
     healthcheck:
-      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "127.0.0.1:9092", "--list"]
+      test:
+        [
+          "CMD",
+          "kafka-topics.sh",
+          "--bootstrap-server",
+          "kafka:9092",
+          "--list"
+        ]
       interval: 3s
       timeout: 3s
       retries: 3
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.2.2
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    links:
+      - kafka
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    healthcheck:
+      test: curl -f -LI schema-registry:8081
+      interval: 15s
+      timeout: 5s
+      retries: 2
+      start_period: 15s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.4.0
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    links:
+      - kafka
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  kafka-producer:
+    image: docker.io/cnfldemos/kafka-connect-datagen:0.6.0-7.2.1
+    restart: "no"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        # kafka-json-schema-console-producer --broker-list kafka:29092 --topic update_slot --property schema.registry.url=http://schema-registry:8081 --property value.schema.file=/var/json-schemas/update_slot.json < /var/update_slots.txt
+    volumes:
+      - ./json-schemas:/var/json-schemas
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    links:
+      - kafka

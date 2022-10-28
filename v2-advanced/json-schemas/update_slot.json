@@ -1,0 +1,25 @@
+{
+  "definitions" : {
+    "record:event.update_slot" : {
+      "type" : "object",
+      "required" : [ "slot", "parent", "status" ],
+      "additionalProperties" : false,
+      "properties" : {
+        "slot" : {
+          "type" : "integer",
+          "minimum" : -2147483648,
+          "maximum" : 2147483647
+        },
+        "parent" : {
+          "type" : "integer",
+          "minimum" : -2147483648,
+          "maximum" : 2147483647
+        },
+        "status" : {
+          "type" : "string"
+        }
+      }
+    }
+  },
+  "$ref" : "#/definitions/record:event.update_slot"
+}
