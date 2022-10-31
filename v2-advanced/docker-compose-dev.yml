@@ -100,14 +100,20 @@ services:
 
   kafka-producer:
     image: docker.io/cnfldemos/kafka-connect-datagen:0.6.0-7.2.1
+    user: 0:0
     restart: "no"
     command:
       - /bin/sh
       - -c
       - |
-        # kafka-json-schema-console-producer --broker-list kafka:29092 --topic update_slot --property schema.registry.url=http://schema-registry:8081 --property value.schema.file=/var/json-schemas/update_slot.json < /var/update_slots.txt
+        yum -y update && yum -y install unzip
+        unzip /var/json-data/kafka_topics.zip -d /var/json-data/
+        kafka-console-producer --broker-list kafka:29092 --topic update_slot < /var/json-data/update_slot.topic
+        kafka-console-producer --broker-list kafka:29092 --topic notify_block < /var/json-data/notify_block.topic
+        kafka-console-producer --broker-list kafka:29092 --topic notify_transaction < /var/json-data/notify_transaction.topic
+        kafka-console-producer --broker-list kafka:29092 --topic update_account < /var/json-data/update_account.topic
     volumes:
-      - ./json-schemas:/var/json-schemas
+      - ./json-data:/var/json-data
     depends_on:
       kafka:
         condition: service_healthy
