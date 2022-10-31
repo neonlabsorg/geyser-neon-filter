@@ -1,13 +1,23 @@
 version: "3.7"
 
+
+networks:
+  network:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.1.0.0/24
+          gateway: 10.1.0.1
+
 services:
   clickhouse-server:
     image: docker.io/clickhouse/clickhouse-server:22.6.9.11-alpine
     depends_on:
       kafka:
         condition: service_healthy
-    links:
-      - kafka
+    networks:
+      network:
+        ipv4_address: 10.1.0.2
     ulimits:
       nproc: 65535
       nofile:
@@ -33,6 +43,9 @@ services:
       ALLOW_PLAINTEXT_LISTENER: yes
     ports:
       - 9092:9092
+    networks:
+      network:
+        ipv4_address: 10.1.0.3
     healthcheck:
       test:
         [
@@ -55,8 +68,9 @@ services:
         condition: service_healthy
     ports:
       - "8081:8081"
-    links:
-      - kafka
+    networks:
+      network:
+        ipv4_address: 10.1.0.4
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
@@ -73,8 +87,9 @@ services:
     container_name: kafka-ui
     ports:
       - "8080:8080"
-    links:
-      - kafka
+    networks:
+      network:
+        ipv4_address: 10.1.0.5
     restart: always
     depends_on:
       kafka:
@@ -98,5 +113,6 @@ services:
         condition: service_healthy
       schema-registry:
         condition: service_healthy
-    links:
-      - kafka
+    networks:
+      network:
+        ipv4_address: 10.1.0.6
