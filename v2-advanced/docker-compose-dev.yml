@@ -123,3 +123,21 @@ services:
     networks:
       network:
         ipv4_address: 10.1.0.6
+
+  clickhouse-client:
+    image: docker.io/clickhouse/clickhouse-server:22.6.9.11-alpine
+    volumes:
+      - ./clickhouse:/var/clickhouse
+    command:
+      - /bin/sh
+      - -c
+      - |
+        clickhouse-client --host clickhouse-server < /var/clickhouse/create_update_slot.sql
+        clickhouse-client --host clickhouse-server < /var/clickhouse/create_update_slot_queue.sql
+        clickhouse-client --host clickhouse-server < /var/clickhouse/create_update_slot_mv.sql
+    depends_on:
+      kafka-producer:
+        condition: service_completed_successfully
+    networks:
+      network:
+        ipv4_address: 10.1.0.7
