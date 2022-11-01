@@ -8,28 +8,78 @@ networks:
         - subnet: 10.1.0.0/24
           gateway: 10.1.0.1
 
+x-clickhouse-common: &clickhouse-common
+  image: docker.io/clickhouse/clickhouse-server:22.6.9.11-alpine
+  ulimits:
+    nproc: 65535
+    nofile:
+      soft: 262144
+      hard: 262144
+
 services:
-  clickhouse-server:
-    image: docker.io/clickhouse/clickhouse-server:22.6.9.11-alpine
-    depends_on:
-      kafka:
-        condition: service_healthy
+  clickhouse01:
+    <<: *clickhouse-common
+    container_name: clickhouse01
+    hostname: clickhouse01
     ports:
-      - "8123:8123"
+      - 9000:9000
+      - 8123:8123
+      - 9181:9181
     networks:
       network:
         ipv4_address: 10.1.0.2
-    ulimits:
-      nproc: 65535
-      nofile:
-        soft: 262144
-        hard: 262144
-    healthcheck:
-      test: wget --spider -q 0.0.0.0:8123/ping
-      interval: 5s
-      timeout: 3s
-      retries: 3
+    volumes:
+      - "./clickhouse/configs/clickhouse01:/etc/clickhouse-server/config.d/"
+      - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
+      - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
 
+  clickhouse02:
+    <<: *clickhouse-common
+    container_name: clickhouse02
+    hostname: clickhouse02
+    ports:
+      - 9001:9000
+      - 8124:8123
+      - 9182:9181
+    networks:
+      network:
+        ipv4_address: 10.1.0.3
+    volumes:
+      - "./clickhouse/configs/clickhouse02:/etc/clickhouse-server/config.d/"
+      - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
+      - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
+
+  clickhouse03:
+    <<: *clickhouse-common
+    container_name: clickhouse03
+    hostname: clickhouse03
+    ports:
+      - 9002:9000
+      - 8125:8123
+      - 9183:9181
+    networks:
+      network:
+        ipv4_address: 10.1.0.4
+    volumes:
+      - "./clickhouse/configs/clickhouse03:/etc/clickhouse-server/config.d/"
+      - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
+      - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
+
+  clickhouse04:
+    <<: *clickhouse-common
+    container_name: clickhouse04
+    hostname: clickhouse04
+    ports:
+      - 9003:9000
+      - 8126:8123
+      - 9184:9181
+    networks:
+      network:
+        ipv4_address: 10.1.0.5
+    volumes:
+      - "./clickhouse/configs/clickhouse04:/etc/clickhouse-server/config.d/"
+      - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
+      - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
   kafka:
     image: docker.io/bitnami/kafka:3.3.1
     environment:
@@ -46,7 +96,7 @@ services:
       - 9092:9092
     networks:
       network:
-        ipv4_address: 10.1.0.3
+        ipv4_address: 10.1.0.6
     healthcheck:
       test:
         [
@@ -71,7 +121,7 @@ services:
       - "8081:8081"
     networks:
       network:
-        ipv4_address: 10.1.0.4
+        ipv4_address: 10.1.0.7
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
@@ -90,7 +140,7 @@ services:
       - "8080:8080"
     networks:
       network:
-        ipv4_address: 10.1.0.5
+        ipv4_address: 10.1.0.8
     restart: always
     depends_on:
       kafka:
@@ -116,28 +166,34 @@ services:
     volumes:
       - ./json-data/kafka_topics.7z:/var/json-data/kafka_topics.7z
     depends_on:
-      kafka:
-        condition: service_healthy
       schema-registry:
         condition: service_healthy
     networks:
       network:
-        ipv4_address: 10.1.0.6
+        ipv4_address: 10.1.0.9
 
   clickhouse-client:
     image: docker.io/clickhouse/clickhouse-server:22.6.9.11-alpine
+    restart: "no"
     volumes:
       - ./clickhouse:/var/clickhouse
     command:
       - /bin/sh
       - -c
       - |
-        clickhouse-client --host clickhouse-server < /var/clickhouse/create_update_slot.sql
-        clickhouse-client --host clickhouse-server < /var/clickhouse/create_update_slot_queue.sql
-        clickhouse-client --host clickhouse-server < /var/clickhouse/create_update_slot_mv.sql
+        echo 1
+        clickhouse-client --host clickhouse01 < /var/clickhouse/create_db_cluster.sql
+        echo 2
+        clickhouse-client --host clickhouse01 < /var/clickhouse/create_update_slot.sql
+        echo 3
+        clickhouse-client --host clickhouse01 < /var/clickhouse/create_update_slot_distributed.sql
+        echo 4
+        clickhouse-client --host clickhouse01 < /var/clickhouse/create_update_slot_queue.sql
+        echo 5
+        clickhouse-client --host clickhouse01 < /var/clickhouse/create_update_slot_mv.sql
     depends_on:
       kafka-producer:
         condition: service_completed_successfully
     networks:
       network:
-        ipv4_address: 10.1.0.7
+        ipv4_address: 10.1.0.10
