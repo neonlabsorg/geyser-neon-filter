@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS events.update_slot_local ON CLUSTER '{cluster}' (
     slot_status Enum('Processed' = 1, 'Rooted' = 2, 'Confirmed' = 3),
     timestamp DateTime64
 )   ENGINE = ReplicatedMergeTree(
-    '/clickhouse/tables/{shard}/update_slot',
+    '/clickhouse/tables/{shard}/update_slot_local',
     '{replica}'
 ) PRIMARY KEY(slot)
 ORDER BY (slot);
@@ -25,8 +25,7 @@ CREATE TABLE IF NOT EXISTS events.update_slot_queue ON CLUSTER '{cluster}' (
     kafka_num_consumers = 1,
     kafka_format = 'JSONEachRow';
 
--- Should be with ReplicatedSummingMergeTree
+-- ENGINE Should be ReplicatedSummingMergeTree?
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.update_slot_queue_mv ON CLUSTER '{cluster}' to events.update_slot_local
-AS
-    SELECT slot, parent, slot_status, now64() as timestamp
+AS  SELECT slot, parent, slot_status, now64() as timestamp
     FROM events.update_slot_queue;
