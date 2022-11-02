@@ -181,16 +181,7 @@ services:
       - /bin/sh
       - -c
       - |
-        echo 1
-        clickhouse-client --host clickhouse01 < /var/clickhouse/create_db_cluster.sql
-        echo 2
-        clickhouse-client --host clickhouse01 < /var/clickhouse/create_update_slot.sql
-        echo 3
-        clickhouse-client --host clickhouse01 < /var/clickhouse/create_update_slot_distributed.sql
-        echo 4
-        clickhouse-client --host clickhouse01 < /var/clickhouse/create_update_slot_queue.sql
-        echo 5
-        clickhouse-client --host clickhouse01 < /var/clickhouse/create_update_slot_mv.sql
+        clickhouse-client --host clickhouse01 --queries-file /var/clickhouse/create_update_slot.sql
     depends_on:
       kafka-producer:
         condition: service_completed_successfully
