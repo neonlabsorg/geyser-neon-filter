@@ -10,7 +10,7 @@ clap = "4.0.12"
 chrono = { version = "0.4.22", features = ["serde"] }
 tokio = { version = "1.21.2", features = ["full"] }
 rdkafka = { version = "0.28.0", features = ["cmake-build"] }
-serde = "1.0.145"
+serde = "1.0.147"
 serde_json = "1.0.85"
 kafka_common = { git = "https://github.com/neonlabsorg/geyser-neon-plugin.git", branch = "main" }
 log = "0.4.17"
