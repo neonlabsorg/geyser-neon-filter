@@ -4,14 +4,14 @@ CREATE TABLE IF NOT EXISTS events.update_slot_local ON CLUSTER '{cluster}' (
     slot UInt64,
     parent Nullable(UInt64) default 0,
     slot_status Enum('Processed' = 1, 'Rooted' = 2, 'Confirmed' = 3),
-    timestamp DateTime64
+    timestamp DateTime  CODEC(DoubleDelta, LZ4)
 )   ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/update_slot_local',
     '{replica}'
 ) PRIMARY KEY(slot)
 ORDER BY (slot);
 
-CREATE TABLE events.update_slot_main ON CLUSTER '{cluster}' AS events.update_slot_local
+CREATE TABLE IF NOT EXISTS events.update_slot_main ON CLUSTER '{cluster}' AS events.update_slot_local
 ENGINE = Distributed('{cluster}', events, update_slot_local, rand());
 
 CREATE TABLE IF NOT EXISTS events.update_slot_queue ON CLUSTER '{cluster}' (
@@ -27,5 +27,5 @@ CREATE TABLE IF NOT EXISTS events.update_slot_queue ON CLUSTER '{cluster}' (
 
 -- ENGINE Should be ReplicatedSummingMergeTree?
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.update_slot_queue_mv ON CLUSTER '{cluster}' to events.update_slot_local
-AS  SELECT slot, parent, slot_status, now64() as timestamp
+AS  SELECT slot, parent, slot_status, now() as timestamp
     FROM events.update_slot_queue;

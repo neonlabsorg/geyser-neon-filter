@@ -182,6 +182,7 @@ services:
       - -c
       - |
         clickhouse-client --host clickhouse01 --queries-file /var/clickhouse/create_update_slot.sql
+        clickhouse-client --host clickhouse01 --queries-file /var/clickhouse/create_notify_block.sql
     depends_on:
       kafka-producer:
         condition: service_completed_successfully
