@@ -10,6 +10,10 @@ An example configuration file looks like the following:
 {
     "bootstrap_servers": "167.235.75.213:9092,159.69.197.26:9092,167.235.151.85:9092",
     "postgres_connection_str": "postgresql://username:password@1.1.1.1:3333/neon-db",
+    "sasl_username": "username",
+    "sasl_password": "password",
+    "sasl_mechanism": "SCRAM-SHA-512",
+    "security_protocol": "SASL_SSL",
     "kafka_consumer_group_id": "group_id",
     "update_account_topic": "update_account",
     "session_timeout_ms": "45000",

@@ -30,6 +30,10 @@ pub async fn consumer(config: Arc<FilterConfig>, filter_tx: Sender<UpdateAccount
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", &config.session_timeout_ms)
         .set("enable.auto.commit", "true")
+        .set("security.protocol", &config.security_protocol)
+        .set("sasl.mechanism", &config.sasl_mechanism)
+        .set("sasl.username", &config.sasl_username)
+        .set("sasl.password", &config.sasl_password)
         .set_log_level((&config.kafka_log_level).into())
         .create()
         .expect("Consumer creation failed");
