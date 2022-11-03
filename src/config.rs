@@ -75,6 +75,10 @@ pub struct FilterConfig {
     pub bootstrap_servers: String,
     pub kafka_consumer_group_id: String,
     pub postgres_connection_str: String,
+    pub sasl_username: String,
+    pub sasl_password: String,
+    pub sasl_mechanism: String,
+    pub security_protocol: String,
     pub update_account_topic: String,
     pub session_timeout_ms: String,
     // Filter by account owners in base58
