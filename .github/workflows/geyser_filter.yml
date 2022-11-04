@@ -97,7 +97,7 @@ jobs:
         with:
           username: ${{ secrets.DHUBU }}
           password: ${{ secrets.DHUBP }}
-      - name: Build and push
+      - name: Build and push for filter v1
         env:
           IMAGE_TAG: ${{ github.sha }}
         uses: docker/build-push-action@v3
