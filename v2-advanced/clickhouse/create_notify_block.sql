@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS events ON CLUSTER 'events';
 
 CREATE TABLE IF NOT EXISTS events.notify_block_local ON CLUSTER '{cluster}' (
     notify_block_json String CODEC(ZSTD(5)),
-    timestamp DateTime CODEC(DoubleDelta, LZ4)
+    timestamp DateTime CODEC(DoubleDelta, ZSTD(5))
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/notify_block_local',
     '{replica}'
