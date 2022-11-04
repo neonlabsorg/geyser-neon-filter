@@ -11,11 +11,15 @@ CREATE TABLE IF NOT EXISTS events.update_account_local ON CLUSTER '{cluster}' (
     txn_signature Array(Nullable(UInt8)) CODEC(ZSTD),
     slot UInt64 CODEC(DoubleDelta),
     is_startup Bool CODEC(Gorilla),
-    timestamp DateTime CODEC(T64, ZSTD)
+    timestamp DateTime CODEC(T64, ZSTD),
+    INDEX slot_idx slot TYPE set(100) GRANULARITY 2,
+    INDEX write_idx write_version TYPE set(100) GRANULARITY 2
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/update_account_local',
     '{replica}'
-) ORDER BY (timestamp);
+) PRIMARY KEY (pubkey, slot, write_version)
+ORDER BY (pubkey, slot, write_version)
+SETTINGS index_granularity=8192;
 
 CREATE TABLE IF NOT EXISTS events.update_account_main ON CLUSTER '{cluster}' AS events.update_account_local
 ENGINE = Distributed('{cluster}', events, update_account_local, rand());

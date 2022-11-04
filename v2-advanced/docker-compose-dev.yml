@@ -167,10 +167,10 @@ services:
       - |
         dnf -y update && dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && dnf -y install p7zip p7zip-plugins
         7za x /var/json-data/kafka_topics.7z -o/var/json-data/ -aos
-        kafka-console-producer --broker-list kafka:29092 --topic update_slot < /var/json-data/update_slot.topic
-        kafka-console-producer --broker-list kafka:29092 --topic notify_block < /var/json-data/notify_block.topic
-        kafka-console-producer --broker-list kafka:29092 --topic notify_transaction < /var/json-data/notify_transaction.topic
-        kafka-console-producer --broker-list kafka:29092 --topic update_account < /var/json-data/update_account.topic
+        kafka-console-producer --broker-list kafka:29092 --topic update_slot --property "parse.key=true" < /var/json-data/update_slot.topic
+        kafka-console-producer --broker-list kafka:29092 --topic notify_block --property "parse.key=true" < /var/json-data/notify_block.topic
+        kafka-console-producer --broker-list kafka:29092 --topic notify_transaction --property "parse.key=true" < /var/json-data/notify_transaction.topic
+        kafka-console-producer --broker-list kafka:29092 --topic update_account --property "parse.key=true" < /var/json-data/update_account.topic
     volumes:
       - ./json-data/kafka_topics.7z:/var/json-data/kafka_topics.7z
     depends_on:
