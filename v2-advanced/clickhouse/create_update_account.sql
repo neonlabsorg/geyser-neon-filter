@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS events.update_account_local ON CLUSTER '{cluster}' (
     txn_signature Array(Nullable(UInt8)) CODEC(ZSTD),
     slot UInt64 CODEC(DoubleDelta),
     is_startup Bool CODEC(Gorilla),
-    timestamp DateTime CODEC(T64, ZSTD),
     INDEX slot_idx slot TYPE set(100) GRANULARITY 2,
     INDEX write_idx write_version TYPE set(100) GRANULARITY 2
 ) ENGINE = ReplicatedMergeTree(
@@ -43,5 +42,5 @@ CREATE TABLE IF NOT EXISTS events.update_account_queue ON CLUSTER '{cluster}' (
     kafka_format = 'JSONEachRow';
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.update_account_queue_mv ON CLUSTER '{cluster}' to events.update_account_local
-AS  SELECT pubkey, lamports, owner, executable, rent_epoch, data, write_version, txn_signature, slot, is_startup,  now() as timestamp
+AS  SELECT pubkey, lamports, owner, executable, rent_epoch, data, write_version, txn_signature, slot, is_startup
     FROM events.update_account_queue;

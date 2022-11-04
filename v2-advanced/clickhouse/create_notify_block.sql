@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS events.notify_block_local ON CLUSTER '{cluster}' (
     slot UInt64 CODEC(DoubleDelta, ZSTD),
     hash String CODEC(ZSTD(5)),
     notify_block_json String CODEC(ZSTD(5)),
-    timestamp DateTime CODEC(DoubleDelta, ZSTD(5)),
     INDEX slot_idx slot TYPE set(100) GRANULARITY 2
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/notify_block_local',
@@ -29,6 +28,5 @@ CREATE TABLE IF NOT EXISTS events.notify_block_queue ON CLUSTER '{cluster}' (
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.notify_block_queue_mv ON CLUSTER '{cluster}' TO events.notify_block_local AS
 SELECT JSONExtract(notify_block_json, 'slot', 'UInt64') AS slot,
        _key as hash,
-       notify_block_json,
-       now() as timestamp
+       notify_block_json
 FROM events.notify_block_queue
