@@ -29,7 +29,9 @@ services:
       network:
         ipv4_address: 10.1.0.2
     volumes:
-      - "./clickhouse/configs/clickhouse01:/etc/clickhouse-server/config.d/"
+      - "./clickhouse/configs/clickhouse01/enable_keeper.xml:/etc/clickhouse-server/config.d/enable_keeper.xml"
+      - "./clickhouse/configs/clickhouse01/keeper_servers.xml:/etc/clickhouse-server/config.d/keeper_servers.xml"
+      - "./clickhouse/configs/clickhouse01/shard_replica.xml:/etc/clickhouse-server/config.d/shard_replica.xml"
       - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
       - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
 
@@ -45,7 +47,9 @@ services:
       network:
         ipv4_address: 10.1.0.3
     volumes:
-      - "./clickhouse/configs/clickhouse02:/etc/clickhouse-server/config.d/"
+      - "./clickhouse/configs/clickhouse02/enable_keeper.xml:/etc/clickhouse-server/config.d/enable_keeper.xml"
+      - "./clickhouse/configs/clickhouse02/keeper_servers.xml:/etc/clickhouse-server/config.d/keeper_servers.xml"
+      - "./clickhouse/configs/clickhouse02/shard_replica.xml:/etc/clickhouse-server/config.d/shard_replica.xml"
       - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
       - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
 
@@ -61,7 +65,9 @@ services:
       network:
         ipv4_address: 10.1.0.4
     volumes:
-      - "./clickhouse/configs/clickhouse03:/etc/clickhouse-server/config.d/"
+      - "./clickhouse/configs/clickhouse03/enable_keeper.xml:/etc/clickhouse-server/config.d/enable_keeper.xml"
+      - "./clickhouse/configs/clickhouse03/keeper_servers.xml:/etc/clickhouse-server/config.d/keeper_servers.xml"
+      - "./clickhouse/configs/clickhouse03/shard_replica.xml:/etc/clickhouse-server/config.d/shard_replica.xml"
       - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
       - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
 
@@ -77,7 +83,9 @@ services:
       network:
         ipv4_address: 10.1.0.5
     volumes:
-      - "./clickhouse/configs/clickhouse04:/etc/clickhouse-server/config.d/"
+      - "./clickhouse/configs/clickhouse04/enable_keeper.xml:/etc/clickhouse-server/config.d/enable_keeper.xml"
+      - "./clickhouse/configs/clickhouse04/keeper_servers.xml:/etc/clickhouse-server/config.d/keeper_servers.xml"
+      - "./clickhouse/configs/clickhouse04/shard_replica.xml:/etc/clickhouse-server/config.d/shard_replica.xml"
       - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
       - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
   kafka:

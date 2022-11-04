@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS events ON CLUSTER 'events';
 
 CREATE TABLE IF NOT EXISTS events.update_slot_local ON CLUSTER '{cluster}' (
     slot UInt64 CODEC(DoubleDelta, ZSTD),
-    parent Nullable(UInt64) default 0, CODEC(DoubleDelta, ZSTD),
+    parent Nullable(UInt64) default 0 CODEC(DoubleDelta, ZSTD),
     slot_status Enum('Processed' = 1, 'Rooted' = 2, 'Confirmed' = 3) CODEC(T64, ZSTD),
     timestamp DateTime CODEC(T64, ZSTD)
 ) ENGINE = ReplicatedMergeTree(
