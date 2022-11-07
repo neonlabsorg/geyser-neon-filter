@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS events.update_slot_local ON CLUSTER '{cluster}' (
     slot UInt64 CODEC(DoubleDelta, ZSTD),
     parent Nullable(UInt64) default 0 CODEC(DoubleDelta, ZSTD),
     slot_status Enum('Processed' = 1, 'Rooted' = 2, 'Confirmed' = 3) CODEC(T64, ZSTD),
-    timestamp DateTime CODEC(T64, ZSTD)
+    retrieved_time DateTime CODEC(T64, ZSTD)
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/update_slot_local',
     '{replica}'
@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS events.update_slot_main ON CLUSTER '{cluster}' AS eve
 CREATE TABLE IF NOT EXISTS events.update_slot_queue ON CLUSTER '{cluster}' (
     slot UInt64,
     parent Nullable(UInt64) default 0,
-    slot_status Enum('Processed' = 1, 'Rooted' = 2, 'Confirmed' = 3)
+    slot_status Enum('Processed' = 1, 'Rooted' = 2, 'Confirmed' = 3),
+    retrieved_time DateTime DEFAULT now()
 ) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092',
 kafka_topic_list = 'update_slot',
 kafka_group_name = 'clickhouse',
@@ -28,5 +29,5 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS events.update_slot_queue_mv ON CLUSTER '{
 SELECT slot,
     parent,
     slot_status,
-    now() as timestamp
+    retrieved_time
 FROM events.update_slot_queue;
