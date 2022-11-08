@@ -6,7 +6,7 @@ description = "Neon geyser filter"
 authors = ["NeonLabs Maintainers <maintainers@neonlabs.org>"]
 
 [dependencies]
-clap = "4.0.18"
+clap = "4.0.22"
 chrono = { version = "0.4.22", features = ["serde"] }
 tokio = { version = "1.21.2", features = ["full"] }
 rdkafka = { version = "0.28.0", features = ["cmake-build"] }
