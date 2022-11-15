@@ -1,6 +1,14 @@
 version: 2
+registries:
+    dockerhub:
+      type: docker-registry
+      url: https://registry.hub.docker.com
+      username: ${{ secrets.DHUBU }}
+      password: ${{ secrets.DHUBP }}
 updates:
     - package-ecosystem: "cargo"
+      registries:
+        - dockerhub
       directory: "/"
       schedule:
           interval: "daily"
