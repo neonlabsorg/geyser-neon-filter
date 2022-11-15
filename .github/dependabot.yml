@@ -10,3 +10,9 @@ updates:
       open-pull-requests-limit: 5
       assignees:
         - "deniskore"
+registries:
+    dockerhub:
+      type: docker-registry
+      url: https://registry.hub.docker.com
+      username: ${{ secrets.DHUBU }}
+      password: ${{ secrets.DHUBP }}
