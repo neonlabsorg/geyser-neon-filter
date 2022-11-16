@@ -661,6 +661,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "dark-std"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1816eefaa8a2205de4ecb7e2029f7a0b088993aa1e9945cb13c4feb3d3afd549"
+dependencies = [
+ "crossbeam",
+ "flume",
+ "parking_lot",
+ "serde",
+]
+
+[[package]]
 name = "darling"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -818,16 +830,18 @@ checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
 name = "fast_log"
-version = "1.5.43"
+version = "1.5.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af8e5ffb9aace39df1261eed32a6a4c8366de9a1ee57f47f15e849ff0ec47e46"
+checksum = "a3c9eeae7a8139595b0315ec39368d75274e5501e6d692ccf4b5bafc1d697585"
 dependencies = [
  "crossbeam",
  "crossbeam-channel",
  "crossbeam-utils",
+ "dark-std",
  "fastdate",
  "log",
  "once_cell",
+ "parking_lot",
 ]
 
 [[package]]
