@@ -7,7 +7,7 @@ authors = ["NeonLabs Maintainers <maintainers@neonlabs.org>"]
 
 [dependencies]
 clap = "4.0.25"
-chrono = { version = "0.4.22", features = ["serde"] }
+chrono = { version = "0.4.23", features = ["serde"] }
 tokio = { version = "1.21.2", features = ["full"] }
 rdkafka = { version = "0.29.0", features = ["cmake-build"] }
 serde = "1.0.147"
