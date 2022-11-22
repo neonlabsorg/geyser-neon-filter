@@ -9,6 +9,7 @@ use crossbeam_queue::SegQueue;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
 use log::info;
+use log::trace;
 use log::warn;
 use tokio_postgres::NoTls;
 use tokio_postgres::{Client, Statement};
@@ -34,36 +35,61 @@ impl fmt::Display for DbAccountInfo {
     }
 }
 
-impl TryFrom<UpdateAccount> for DbAccountInfo {
+fn range_check(lamports: u64, rent_epoch: u64, write_version: u64) -> Result<()> {
+    if lamports > std::i64::MAX as u64 {
+        return Err(anyhow!("account_info.lamports greater than std::i64::MAX!"));
+    }
+    if rent_epoch > std::i64::MAX as u64 {
+        return Err(anyhow!(
+            "account_info.rent_epoch greater than std::i64::MAX!"
+        ));
+    }
+    if write_version > std::i64::MAX as u64 {
+        return Err(anyhow!(
+            "account_info.write_version greater than std::i64::MAX!"
+        ));
+    }
+    Ok(())
+}
+
+impl TryFrom<&UpdateAccount> for DbAccountInfo {
     type Error = anyhow::Error;
 
-    fn try_from(update_account: UpdateAccount) -> Result<Self> {
-        match update_account.account {
-            kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_1(_) => {
-                unimplemented!()
-            }
-            kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_2(account_info) => {
-                if account_info.lamports > std::i64::MAX as u64 {
-                    return Err(anyhow!("account_info.lamports greater than std::i64::MAX!"));
-                }
-                if account_info.rent_epoch > std::i64::MAX as u64 {
-                    return Err(anyhow!(
-                        "account_info.rent_epoch greater than std::i64::MAX!"
-                    ));
-                }
-                if account_info.write_version > std::i64::MAX as u64 {
-                    return Err(anyhow!(
-                        "account_info.write_version greater than std::i64::MAX!"
-                    ));
-                }
+    fn try_from(update_account: &UpdateAccount) -> Result<Self> {
+        match &update_account.account {
+            kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_1(account_info) => {
+                range_check(
+                    account_info.lamports,
+                    account_info.rent_epoch,
+                    account_info.write_version,
+                )?;
 
                 Ok(DbAccountInfo {
-                    pubkey: account_info.pubkey,
+                    pubkey: account_info.pubkey.clone(),
                     lamports: account_info.lamports as i64,
-                    owner: account_info.owner,
+                    owner: account_info.owner.clone(),
                     executable: account_info.executable,
                     rent_epoch: account_info.rent_epoch as i64,
-                    data: account_info.data,
+                    data: account_info.data.clone(),
+                    slot: update_account.slot as i64,
+                    write_version: account_info.write_version as i64,
+                    txn_signature: None,
+                })
+            }
+            kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_2(account_info) => {
+                range_check(
+                    account_info.lamports,
+                    account_info.rent_epoch,
+                    account_info.write_version,
+                )?;
+
+                Ok(DbAccountInfo {
+                    pubkey: account_info.pubkey.clone(),
+                    lamports: account_info.lamports as i64,
+                    owner: account_info.owner.clone(),
+                    executable: account_info.executable,
+                    rent_epoch: account_info.rent_epoch as i64,
+                    data: account_info.data.clone(),
                     slot: update_account.slot as i64,
                     write_version: account_info.write_version as i64,
                     txn_signature: account_info.txn_signature.map(|v| v.as_ref().to_vec()),
@@ -170,6 +196,11 @@ pub async fn db_statement_executor(
         if let Some(db_account_info) = db_queue.pop() {
             let client = client.clone();
             let db_queue = db_queue.clone();
+
+            trace!(
+                "Preparing a statement for the account {}",
+                bs58::encode(&db_account_info.pubkey).into_string()
+            );
 
             tokio::spawn(async move {
                 let statement = match create_account_insert_statement(client.clone()).await {

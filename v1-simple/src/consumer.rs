@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use flume::Sender;
 use kafka_common::kafka_structs::UpdateAccount;
-use log::error;
+use log::{error, info};
 use rdkafka::{
     consumer::{Consumer, StreamConsumer},
     message::BorrowedMessage,
@@ -41,6 +41,8 @@ pub async fn consumer(config: Arc<FilterConfig>, filter_tx: Sender<UpdateAccount
     consumer
         .subscribe(&[&config.update_account_topic])
         .expect("Couldn't subscribe to specified topic");
+
+    info!("The consumer loop is about to start!");
 
     loop {
         match consumer.recv().await {
