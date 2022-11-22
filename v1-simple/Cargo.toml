@@ -6,6 +6,7 @@ description = "Neon geyser filter"
 authors = ["NeonLabs Maintainers <maintainers@neonlabs.org>"]
 
 [dependencies]
+ahash = { version = "0.8.2", features = ["serde"] }
 clap = "4.0.26"
 chrono = { version = "0.4.23", features = ["serde"] }
 tokio = { version = "1.22.0", features = ["full"] }
@@ -19,4 +20,4 @@ flume = "0.10.14"
 tokio-postgres = { version = "0.7.7", features = ["with-chrono-0_4"] }
 anyhow = "1.0.66"
 bs58 = "0.4.0"
-crossbeam-queue = "0.3.7"
+crossbeam-queue = "0.3.6"
