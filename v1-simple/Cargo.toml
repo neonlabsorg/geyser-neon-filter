@@ -6,6 +6,7 @@ description = "Neon geyser filter"
 authors = ["NeonLabs Maintainers <maintainers@neonlabs.org>"]
 
 [dependencies]
+ahash = { version = "0.8.2", features = ["serde"] }
 clap = "4.0.25"
 chrono = { version = "0.4.23", features = ["serde"] }
 tokio = { version = "1.21.2", features = ["full"] }
