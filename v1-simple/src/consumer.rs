@@ -42,7 +42,7 @@ pub async fn consumer(config: Arc<FilterConfig>, filter_tx: Sender<UpdateAccount
         .subscribe(&[&config.update_account_topic])
         .expect("Couldn't subscribe to specified topic");
 
-    info!("The consumer loob is about to start!");
+    info!("The consumer loop is about to start!");
 
     loop {
         match consumer.recv().await {
