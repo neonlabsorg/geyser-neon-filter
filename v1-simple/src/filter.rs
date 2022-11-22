@@ -7,26 +7,55 @@ use flume::Receiver;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::{error, trace};
 
+#[inline(always)]
+async fn check_account(
+    config: Arc<FilterConfig>,
+    db_queue: Arc<SegQueue<DbAccountInfo>>,
+    update_account: &UpdateAccount,
+    owner: &Vec<u8>,
+    pubkey: &Vec<u8>,
+) -> Result<()> {
+    let owner = bs58::encode(owner).into_string();
+    let pubkey = bs58::encode(pubkey).into_string();
+    if config.filter_include_pubkeys.contains(&pubkey)
+        || config.filter_include_owners.contains(&owner)
+    {
+        db_queue.push(update_account.try_into()?);
+        trace!(
+            "Add update_account entry to db queue for pubkey {} owner {}",
+            pubkey,
+            owner
+        );
+    }
+    Ok(())
+}
+
 async fn process_account_info(
     config: Arc<FilterConfig>,
     db_queue: Arc<SegQueue<DbAccountInfo>>,
     update_account: UpdateAccount,
 ) -> Result<()> {
     match &update_account.account {
-        kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_1(_) => unimplemented!(),
+        // for 1.13.x or earlier
+        kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_1(account_info) => {
+            check_account(
+                config,
+                db_queue,
+                &update_account,
+                &account_info.owner,
+                &account_info.pubkey,
+            )
+            .await?;
+        }
         kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_2(account_info) => {
-            let owner = bs58::encode(&account_info.owner).into_string();
-            let pubkey = bs58::encode(&account_info.pubkey).into_string();
-            if config.filter_include_pubkeys.contains(&pubkey)
-                || config.filter_include_owners.contains(&owner)
-            {
-                db_queue.push(update_account.try_into()?);
-                trace!(
-                    "Add update_account entry to db queue for pubkey {} owner {}",
-                    pubkey,
-                    owner
-                );
-            }
+            check_account(
+                config,
+                db_queue,
+                &update_account,
+                &account_info.owner,
+                &account_info.pubkey,
+            )
+            .await?;
         }
     }
     Ok(())
