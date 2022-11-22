@@ -9,6 +9,7 @@ use crossbeam_queue::SegQueue;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
 use log::info;
+use log::trace;
 use log::warn;
 use tokio_postgres::NoTls;
 use tokio_postgres::{Client, Statement};
@@ -170,6 +171,11 @@ pub async fn db_statement_executor(
         if let Some(db_account_info) = db_queue.pop() {
             let client = client.clone();
             let db_queue = db_queue.clone();
+
+            trace!(
+                "Preparing a statement for the account {}",
+                bs58::encode(&db_account_info.pubkey).into_string()
+            );
 
             tokio::spawn(async move {
                 let statement = match create_account_insert_statement(client.clone()).await {

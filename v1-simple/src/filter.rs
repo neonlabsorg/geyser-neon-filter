@@ -5,7 +5,7 @@ use anyhow::Result;
 use crossbeam_queue::SegQueue;
 use flume::Receiver;
 use kafka_common::kafka_structs::UpdateAccount;
-use log::error;
+use log::{error, trace};
 
 async fn process_account_info(
     config: Arc<FilterConfig>,
@@ -21,6 +21,11 @@ async fn process_account_info(
                 || config.filter_include_owners.contains(&owner)
             {
                 db_queue.push(update_account.try_into()?);
+                trace!(
+                    "Add update_account entry to db queue for pubkey {} owner {}",
+                    pubkey,
+                    owner
+                );
             }
         }
     }
