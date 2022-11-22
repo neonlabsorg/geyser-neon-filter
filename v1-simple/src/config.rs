@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use log::LevelFilter;
 use rdkafka::config::RDKafkaLogLevel;
 use serde::{Deserialize, Serialize};
@@ -82,9 +84,9 @@ pub struct FilterConfig {
     pub update_account_topic: String,
     pub session_timeout_ms: String,
     // Filter by account owners in base58
-    pub filter_include_owners: Vec<String>,
+    pub filter_include_owners: HashSet<String>,
     // Alway include list for filter ( public keys from 32 to 44 characters in base58 )
-    pub filter_include_pubkeys: Vec<String>,
+    pub filter_include_pubkeys: HashSet<String>,
     pub kafka_log_level: LogLevel,
     pub global_log_level: GlobalLogLevel,
 }
