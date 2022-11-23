@@ -2,8 +2,10 @@ use ahash::AHashSet;
 use log::LevelFilter;
 use rdkafka::config::RDKafkaLogLevel;
 use serde::{Deserialize, Serialize};
+use std::{env, str::FromStr};
+use strum_macros::EnumString;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, EnumString)]
 pub enum LogLevel {
     /// Higher priority then [`Level::Error`](log::Level::Error) from the log
     /// crate.
@@ -42,7 +44,7 @@ impl From<&LogLevel> for RDKafkaLogLevel {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, EnumString)]
 pub enum GlobalLogLevel {
     /// A level lower than all log levels.
     Off,
@@ -68,6 +70,57 @@ impl From<&GlobalLogLevel> for LevelFilter {
             GlobalLogLevel::Debug => LevelFilter::Debug,
             GlobalLogLevel::Trace => LevelFilter::Trace,
         }
+    }
+}
+
+pub fn env_build_config() -> FilterConfig {
+    let bootstrap_servers = env::var("BOOTSTRAP_SERVERS").expect("BOOTSTRAP_SERVERS is not set");
+    let kafka_consumer_group_id =
+        env::var("KAFKA_CONSUMER_GROUP_ID").expect("KAFKA_CONSUMER_GROUP_ID is not set");
+    let postgres_connection_str =
+        env::var("POSTGRES_CONNECTION_STR").expect("POSTGRES_CONNECTION_STR is not set");
+    let sasl_username = env::var("SASL_USERNAME").expect("SASL_USERNAME is not set");
+    let sasl_password = env::var("SASL_PASSWORD").expect("SASL_PASSWORD is not set");
+    let sasl_mechanism = env::var("SASL_MECHANISM").expect("SASL_MECHANISM is not set");
+    let security_protocol = env::var("SECURITY_PROTOCOL").expect("SECURITY_PROTOCOL is not set");
+    let update_account_topic =
+        env::var("UPDATE_ACCOUNT_TOPIC").expect("UPDATE_ACCOUNT_TOPIC is not set");
+    let session_timeout_ms = env::var("SESSION_TIMEOUT_MS").expect("SESSION_TIMEOUT_MS is not set");
+    let filter_include_owners: AHashSet<String> = env::var("FILTER_INCLUDE_OWNERS")
+        .expect("FILTER_INCLUDE_OWNERS is not set")
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .collect();
+
+    let filter_include_pubkeys: AHashSet<String> = env::var("FILTER_INCLUDE_PUBKEYS")
+        .expect("FILTER_INCLUDE_PUBKEYS is not set")
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .collect();
+
+    let kafka_log_level: LogLevel = LogLevel::from_str(
+        &env::var("KAFKA_LOG_LEVEL").expect("FILTER_INCLUDE_PUBKEYS is not set"),
+    )
+    .unwrap_or(LogLevel::Info);
+    let global_log_level: GlobalLogLevel = GlobalLogLevel::from_str(
+        &env::var("GLOBAL_LOG_LEVEL").expect("GLOBAL_LOG_LEVEL is not set"),
+    )
+    .unwrap_or(GlobalLogLevel::Info);
+
+    FilterConfig {
+        bootstrap_servers,
+        kafka_consumer_group_id,
+        postgres_connection_str,
+        sasl_username,
+        sasl_password,
+        sasl_mechanism,
+        security_protocol,
+        update_account_topic,
+        session_timeout_ms,
+        filter_include_owners,
+        filter_include_pubkeys,
+        kafka_log_level,
+        global_log_level,
     }
 }
 
