@@ -46,15 +46,15 @@ async fn main() {
         .arg(
             Arg::new("config")
                 .short('c')
+                .required(false)
                 .long("config")
                 .value_name("Config path")
-                .help("Sets the path to the config file")
-                .default_value("filter_config.json"),
+                .help("Sets the path to the config file"),
         )
         .get_matches();
 
     let logger: &'static Logger = fast_log::init(Config::new().console().file_split(
-        "/var/logs/neon_filter.log",
+        "/var/log/neon/filter.log",
         LogSize::KB(512),
         RollingType::All,
         LogPacker {},

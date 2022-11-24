@@ -86,6 +86,7 @@ pub fn env_build_config() -> FilterConfig {
     let update_account_topic =
         env::var("UPDATE_ACCOUNT_TOPIC").expect("UPDATE_ACCOUNT_TOPIC is not set");
     let session_timeout_ms = env::var("SESSION_TIMEOUT_MS").expect("SESSION_TIMEOUT_MS is not set");
+
     let filter_include_owners: AHashSet<String> = env::var("FILTER_INCLUDE_OWNERS")
         .expect("FILTER_INCLUDE_OWNERS is not set")
         .split(',')
@@ -98,10 +99,10 @@ pub fn env_build_config() -> FilterConfig {
         .map(|s| s.trim().to_string())
         .collect();
 
-    let kafka_log_level: LogLevel = LogLevel::from_str(
-        &env::var("KAFKA_LOG_LEVEL").expect("FILTER_INCLUDE_PUBKEYS is not set"),
-    )
-    .unwrap_or(LogLevel::Info);
+    let kafka_log_level: LogLevel =
+        LogLevel::from_str(&env::var("KAFKA_LOG_LEVEL").expect("KAFKA_LOG_LEVEL is not set"))
+            .unwrap_or(LogLevel::Info);
+
     let global_log_level: GlobalLogLevel = GlobalLogLevel::from_str(
         &env::var("GLOBAL_LOG_LEVEL").expect("GLOBAL_LOG_LEVEL is not set"),
     )
