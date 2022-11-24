@@ -74,6 +74,7 @@ impl From<&GlobalLogLevel> for LevelFilter {
 }
 
 pub fn env_build_config() -> FilterConfig {
+    let filter_log_path = env::var("FILTER_LOG_PATH").expect("FILTER_LOG_PATH is not set");
     let bootstrap_servers = env::var("BOOTSTRAP_SERVERS").expect("BOOTSTRAP_SERVERS is not set");
     let kafka_consumer_group_id =
         env::var("KAFKA_CONSUMER_GROUP_ID").expect("KAFKA_CONSUMER_GROUP_ID is not set");
@@ -109,6 +110,7 @@ pub fn env_build_config() -> FilterConfig {
     .unwrap_or(GlobalLogLevel::Info);
 
     FilterConfig {
+        filter_log_path,
         bootstrap_servers,
         kafka_consumer_group_id,
         postgres_connection_str,
@@ -127,6 +129,7 @@ pub fn env_build_config() -> FilterConfig {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FilterConfig {
+    pub filter_log_path: String,
     pub bootstrap_servers: String,
     pub kafka_consumer_group_id: String,
     pub postgres_connection_str: String,

@@ -8,6 +8,7 @@ You can change the path to the config file by command line option **--config** o
 An example configuration file looks like the following:
 ```
 {
+    "filter_log_path" : "/var/log/neon/filter.log",
     "bootstrap_servers": "167.235.75.213:9092,159.69.197.26:9092,167.235.151.85:9092",
     "postgres_connection_str": "postgresql://username:password@1.1.1.1:3333/neon-db",
     "sasl_username": "username",
