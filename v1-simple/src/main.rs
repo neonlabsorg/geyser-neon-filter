@@ -19,7 +19,15 @@ use filter::filter;
 use log::error;
 use tokio::fs;
 
-async fn run(config: FilterConfig, logger: &'static Logger) {
+async fn run(config: FilterConfig) {
+    let logger: &'static Logger = fast_log::init(Config::new().console().file_split(
+        &config.filter_log_path,
+        LogSize::KB(512),
+        RollingType::All,
+        LogPacker {},
+    ))
+    .expect("Failed to initialize fast_log");
+
     let config = Arc::new(config);
     let db_queue: Arc<SegQueue<DbAccountInfo>> = Arc::new(SegQueue::new());
 
@@ -53,16 +61,6 @@ async fn main() {
         )
         .get_matches();
 
-    let logger: &'static Logger = fast_log::init(Config::new().console().file_split(
-        "/var/log/neon/filter.log",
-        LogSize::KB(512),
-        RollingType::All,
-        LogPacker {},
-    ))
-    .expect("Failed to initialize fast_log");
-
-    logger.set_level(log::LevelFilter::Debug);
-
     if let Some(config_path) = app.get_one::<String>("config") {
         println!("Trying to read the config file: {config_path}");
 
@@ -73,7 +71,7 @@ async fn main() {
         let result: serde_json::Result<FilterConfig> = serde_json::from_str(&contents);
         match result {
             Ok(config) => {
-                run(config, logger).await;
+                run(config).await;
             }
             Err(e) => {
                 eprintln!("Failed to parse filter config, error {e}");
@@ -81,6 +79,6 @@ async fn main() {
             }
         }
     } else {
-        run(env_build_config(), logger).await;
+        run(env_build_config()).await;
     }
 }
