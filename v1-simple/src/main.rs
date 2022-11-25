@@ -1,3 +1,4 @@
+mod build_info;
 mod config;
 mod consumer;
 mod db;
@@ -5,7 +6,7 @@ mod filter;
 
 use std::sync::Arc;
 
-use crate::consumer::consumer;
+use crate::{build_info::get_build_info, consumer::consumer};
 use clap::{Arg, Command};
 use config::{env_build_config, FilterConfig};
 use crossbeam_queue::SegQueue;
@@ -16,7 +17,7 @@ use fast_log::{
     Config, Logger,
 };
 use filter::filter;
-use log::error;
+use log::{error, info};
 use tokio::fs;
 
 async fn run(config: FilterConfig) {
@@ -27,6 +28,8 @@ async fn run(config: FilterConfig) {
         LogPacker {},
     ))
     .expect("Failed to initialize fast_log");
+
+    info!("{}", get_build_info());
 
     let config = Arc::new(config);
     let db_queue: Arc<SegQueue<DbAccountInfo>> = Arc::new(SegQueue::new());
@@ -60,6 +63,8 @@ async fn main() {
                 .help("Sets the path to the config file"),
         )
         .get_matches();
+
+    println!("{}", get_build_info());
 
     if let Some(config_path) = app.get_one::<String>("config") {
         println!("Trying to read the config file: {config_path}");
