@@ -2,6 +2,7 @@ mod build_info;
 mod config;
 mod consumer;
 mod db;
+mod db_inserts;
 mod db_statements;
 mod filter;
 
@@ -16,7 +17,7 @@ use crate::{
 use clap::{Arg, Command};
 use config::{env_build_config, FilterConfig};
 use crossbeam_queue::SegQueue;
-use db::{db_account_stmt_executor, initialize_db_client, DbAccountInfo};
+use db::{db_stmt_executor, initialize_db_client, DbAccountInfo};
 use fast_log::{
     consts::LogSize,
     plugin::{file_split::RollingType, packer::LogPacker},
@@ -43,17 +44,18 @@ async fn run(mut config: FilterConfig) {
         .take()
         .expect("update_account_topic is not present in config");
 
-    let update_slot_topic = config
-        .update_slot_topic
-        .take()
-        .expect("update_account_topic is not present in config");
-
     let notify_block_topic = config
-        .update_slot_topic
+        .notify_block_topic
         .take()
         .expect("notify_block_topic is not present in config");
 
+    let update_slot_topic = config
+        .update_slot_topic
+        .take()
+        .expect("notify_slot_topic is not present in config");
+
     let config = Arc::new(config);
+
     let db_account_queue: Arc<SegQueue<DbAccountInfo>> = Arc::new(SegQueue::new());
     let db_block_queue: Arc<SegQueue<DbBlockInfo>> = Arc::new(SegQueue::new());
     let db_slot_queue: Arc<SegQueue<UpdateSlotStatus>> = Arc::new(SegQueue::new());
@@ -72,19 +74,9 @@ async fn run(mut config: FilterConfig) {
         filter_rx_account,
     ));
 
-    let block_filter = tokio::spawn(block_filter(
-        config.clone(),
-        client.clone(),
-        db_block_queue.clone(),
-        filter_rx_block,
-    ));
+    let block_filter = tokio::spawn(block_filter(db_block_queue.clone(), filter_rx_block));
 
-    let slot_filter = tokio::spawn(slot_filter(
-        config.clone(),
-        client.clone(),
-        db_slot_queue.clone(),
-        filter_rx_slots,
-    ));
+    let slot_filter = tokio::spawn(slot_filter(db_slot_queue.clone(), filter_rx_slots));
 
     let consumer_update_account = tokio::spawn(consumer(
         config.clone(),
@@ -101,10 +93,12 @@ async fn run(mut config: FilterConfig) {
         filter_tx_block,
     ));
 
-    let db_account_stmt_executor = tokio::spawn(db_account_stmt_executor(
+    let db_stmt_executor = tokio::spawn(db_stmt_executor(
         config.clone(),
         client,
         db_account_queue,
+        db_block_queue,
+        db_slot_queue,
     ));
 
     let _ = tokio::join!(
@@ -114,7 +108,7 @@ async fn run(mut config: FilterConfig) {
         account_filter,
         block_filter,
         slot_filter,
-        db_account_stmt_executor
+        db_stmt_executor
     );
 }
 

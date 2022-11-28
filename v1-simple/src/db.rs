@@ -4,23 +4,28 @@ use std::time::Duration;
 
 use anyhow::anyhow;
 use anyhow::Result;
-use chrono::Utc;
 use crossbeam_queue::SegQueue;
 use kafka_common::kafka_structs::KafkaReplicaBlockInfo;
 use kafka_common::kafka_structs::UpdateAccount;
+use kafka_common::kafka_structs::UpdateSlotStatus;
 use log::error;
 use log::info;
-use log::trace;
 use log::warn;
 use postgres_types::FromSql;
 use solana_runtime::bank::RewardType;
 use solana_transaction_status::Reward;
 use tokio_postgres::types::ToSql;
+use tokio_postgres::Client;
 use tokio_postgres::NoTls;
-use tokio_postgres::{Client, Statement};
 
 use crate::config::FilterConfig;
+use crate::db_inserts::insert_into_account_audit;
+use crate::db_inserts::insert_into_block_metadata;
+use crate::db_inserts::insert_slot_status_internal;
 use crate::db_statements::create_account_insert_statement;
+use crate::db_statements::create_block_metadata_insert_statement;
+use crate::db_statements::create_slot_insert_statement_with_parent;
+use crate::db_statements::create_slot_insert_statement_without_parent;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct DbAccountInfo {
@@ -156,8 +161,8 @@ impl From<&Reward> for DbReward {
     }
 }
 
-impl From<&KafkaReplicaBlockInfo> for DbBlockInfo {
-    fn from(block_info: &KafkaReplicaBlockInfo) -> Self {
+impl From<KafkaReplicaBlockInfo> for DbBlockInfo {
+    fn from(block_info: KafkaReplicaBlockInfo) -> Self {
         Self {
             slot: block_info.slot as i64,
             blockhash: block_info.blockhash.to_string(),
@@ -202,40 +207,12 @@ async fn connect_to_db(config: Arc<FilterConfig>) -> Result<Arc<Client>> {
     Ok(Arc::new(client))
 }
 
-pub async fn insert_into_account_audit(
-    account: &DbAccountInfo,
-    statement: &Statement,
-    client: Arc<Client>,
-) -> Result<()> {
-    let updated_on = Utc::now().naive_utc();
-    if let Err(err) = client
-        .execute(
-            statement,
-            &[
-                &account.pubkey,
-                &account.slot,
-                &account.owner,
-                &account.lamports,
-                &account.executable,
-                &account.rent_epoch,
-                &account.data,
-                &account.write_version,
-                &updated_on,
-                &account.txn_signature,
-            ],
-        )
-        .await
-    {
-        return Err(anyhow!("Statement execution failed , error {err}"));
-    }
-
-    Ok(())
-}
-
-pub async fn db_account_stmt_executor(
+pub async fn db_stmt_executor(
     config: Arc<FilterConfig>,
     mut client: Arc<Client>,
-    db_queue: Arc<SegQueue<DbAccountInfo>>,
+    account_queue: Arc<SegQueue<DbAccountInfo>>,
+    block_queue: Arc<SegQueue<DbBlockInfo>>,
+    slot_queue: Arc<SegQueue<UpdateSlotStatus>>,
 ) {
     let mut idle_interval = tokio::time::interval(Duration::from_millis(500));
 
@@ -245,25 +222,20 @@ pub async fn db_account_stmt_executor(
             client = initialize_db_client(config.clone()).await;
         }
 
-        if db_queue.is_empty() {
+        if account_queue.is_empty() && block_queue.is_empty() && slot_queue.is_empty() {
             idle_interval.tick().await;
         }
 
-        if let Some(db_account_info) = db_queue.pop() {
+        if let Some(db_account_info) = account_queue.pop() {
             let client = client.clone();
-            let db_queue = db_queue.clone();
-
-            trace!(
-                "Preparing a statement for the account {}",
-                bs58::encode(&db_account_info.pubkey).into_string()
-            );
+            let account_queue = account_queue.clone();
 
             tokio::spawn(async move {
                 let statement = match create_account_insert_statement(client.clone()).await {
                     Ok(s) => s,
                     Err(e) => {
                         error!("Failed to execute create_account_insert_statement, error {e}");
-                        db_queue.push(db_account_info);
+                        account_queue.push(db_account_info);
                         return;
                     }
                 };
@@ -273,7 +245,59 @@ pub async fn db_account_stmt_executor(
                 {
                     error!("Failed to insert the data to account_audit, error: {error}");
                     // Push account_info back to the database queue
-                    db_queue.push(db_account_info);
+                    account_queue.push(db_account_info);
+                }
+            });
+        }
+
+        if let Some(db_block_info) = block_queue.pop() {
+            let client = client.clone();
+            let block_queue = block_queue.clone();
+
+            tokio::spawn(async move {
+                let statement = match create_block_metadata_insert_statement(client.clone()).await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!(
+                            "Failed to prepare create_block_metadata_insert_statement, error {e}"
+                        );
+                        block_queue.push(db_block_info);
+                        return;
+                    }
+                };
+                if let Err(error) =
+                    insert_into_block_metadata(&db_block_info, &statement, client).await
+                {
+                    error!("Failed to insert the data to block_metadata, error: {error}");
+                    // Push block_info back to the database queue
+                    block_queue.push(db_block_info);
+                }
+            });
+        }
+
+        if let Some(db_slot_info) = slot_queue.pop() {
+            let client = client.clone();
+            let slot_queue = slot_queue.clone();
+
+            tokio::spawn(async move {
+                let statement = match db_slot_info.parent {
+                    Some(_) => create_slot_insert_statement_with_parent(client.clone()).await,
+                    None => create_slot_insert_statement_without_parent(client.clone()).await,
+                };
+
+                match statement {
+                    Ok(statement) => {
+                        if let Err(e) =
+                            insert_slot_status_internal(&db_slot_info, &statement, client).await
+                        {
+                            error!("Failed to execute insert_slot_status_internal, error {e}");
+                            slot_queue.push(db_slot_info);
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to prepare create_slot_insert_statement, error {e}");
+                        slot_queue.push(db_slot_info);
+                    }
                 }
             });
         }
