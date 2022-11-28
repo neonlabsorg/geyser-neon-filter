@@ -6,15 +6,21 @@ use anyhow::anyhow;
 use anyhow::Result;
 use chrono::Utc;
 use crossbeam_queue::SegQueue;
+use kafka_common::kafka_structs::KafkaReplicaBlockInfo;
 use kafka_common::kafka_structs::UpdateAccount;
 use log::error;
 use log::info;
 use log::trace;
 use log::warn;
+use postgres_types::FromSql;
+use solana_runtime::bank::RewardType;
+use solana_transaction_status::Reward;
+use tokio_postgres::types::ToSql;
 use tokio_postgres::NoTls;
 use tokio_postgres::{Client, Statement};
 
 use crate::config::FilterConfig;
+use crate::db_statements::create_account_insert_statement;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct DbAccountInfo {
@@ -27,6 +33,34 @@ pub struct DbAccountInfo {
     pub slot: i64,
     pub write_version: i64,
     pub txn_signature: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct DbBlockInfo {
+    pub slot: i64,
+    pub blockhash: String,
+    pub rewards: Vec<DbReward>,
+    pub block_time: Option<i64>,
+    pub block_height: Option<i64>,
+}
+
+#[derive(Clone, Debug, FromSql, ToSql, Eq, PartialEq)]
+#[postgres(name = "RewardType")]
+pub enum DbRewardType {
+    Fee,
+    Rent,
+    Staking,
+    Voting,
+}
+
+#[derive(Clone, Debug, FromSql, ToSql)]
+#[postgres(name = "Reward")]
+pub struct DbReward {
+    pub pubkey: String,
+    pub lamports: i64,
+    pub post_balance: i64,
+    pub reward_type: Option<DbRewardType>,
+    pub commission: Option<i16>,
 }
 
 impl fmt::Display for DbAccountInfo {
@@ -99,6 +133,43 @@ impl TryFrom<&UpdateAccount> for DbAccountInfo {
     }
 }
 
+impl From<RewardType> for DbRewardType {
+    fn from(reward_type: RewardType) -> Self {
+        match reward_type {
+            RewardType::Fee => Self::Fee,
+            RewardType::Rent => Self::Rent,
+            RewardType::Staking => Self::Staking,
+            RewardType::Voting => Self::Voting,
+        }
+    }
+}
+
+impl From<&Reward> for DbReward {
+    fn from(reward: &Reward) -> Self {
+        DbReward {
+            pubkey: reward.pubkey.clone(),
+            lamports: reward.lamports,
+            post_balance: reward.post_balance as i64,
+            reward_type: reward.reward_type.map(|v| v.into()),
+            commission: reward.commission.map(|v| v as i16),
+        }
+    }
+}
+
+impl From<&KafkaReplicaBlockInfo> for DbBlockInfo {
+    fn from(block_info: &KafkaReplicaBlockInfo) -> Self {
+        Self {
+            slot: block_info.slot as i64,
+            blockhash: block_info.blockhash.to_string(),
+            rewards: block_info.rewards.iter().map(DbReward::from).collect(),
+            block_time: block_info.block_time,
+            block_height: block_info
+                .block_height
+                .map(|block_height| block_height as i64),
+        }
+    }
+}
+
 pub async fn initialize_db_client(config: Arc<FilterConfig>) -> Arc<Client> {
     let client;
     let mut interval = tokio::time::interval(Duration::from_secs(2));
@@ -131,21 +202,6 @@ async fn connect_to_db(config: Arc<FilterConfig>) -> Result<Arc<Client>> {
     Ok(Arc::new(client))
 }
 
-pub async fn create_account_insert_statement(client: Arc<Client>) -> Result<Statement> {
-    let stmt = "INSERT INTO account AS acct (pubkey, slot, owner, lamports, executable, rent_epoch, data, write_version, updated_on, txn_signature) \
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) \
-    ON CONFLICT (pubkey) DO UPDATE SET slot=excluded.slot, owner=excluded.owner, lamports=excluded.lamports, executable=excluded.executable, rent_epoch=excluded.rent_epoch, \
-    data=excluded.data, write_version=excluded.write_version, updated_on=excluded.updated_on, txn_signature=excluded.txn_signature  WHERE acct.slot < excluded.slot OR (\
-    acct.slot = excluded.slot AND acct.write_version < excluded.write_version)";
-
-    let stmt = client.prepare(stmt).await;
-
-    match stmt {
-        Ok(update_account_stmt) => Ok(update_account_stmt),
-        Err(err) => Err(anyhow!(err)),
-    }
-}
-
 pub async fn insert_into_account_audit(
     account: &DbAccountInfo,
     statement: &Statement,
@@ -176,7 +232,7 @@ pub async fn insert_into_account_audit(
     Ok(())
 }
 
-pub async fn db_statement_executor(
+pub async fn db_account_stmt_executor(
     config: Arc<FilterConfig>,
     mut client: Arc<Client>,
     db_queue: Arc<SegQueue<DbAccountInfo>>,
