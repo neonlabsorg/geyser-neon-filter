@@ -46,7 +46,7 @@ where
         .subscribe(&[&topic])
         .unwrap_or_else(|_| panic!("Couldn't subscribe to specified topic with {type_name}"));
 
-    info!("The consumer loop is about to start!");
+    info!("The consumer loop for {type_name} is about to start!");
 
     loop {
         match consumer.recv().await {

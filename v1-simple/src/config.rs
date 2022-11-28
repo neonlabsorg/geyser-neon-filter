@@ -86,8 +86,8 @@ pub fn env_build_config() -> FilterConfig {
     let security_protocol = env::var("SECURITY_PROTOCOL").expect("SECURITY_PROTOCOL is not set");
     let update_account_topic =
         env::var("UPDATE_ACCOUNT_TOPIC").expect("UPDATE_ACCOUNT_TOPIC is not set");
-    let update_slot_topic = env::var("UPDATE_SLOT_TOPIC").expect("UPDATE_SLOT_TOPIC is not set");
     let notify_block_topic = env::var("NOTIFY_BLOCK_TOPIC").expect("NOTIFY_BLOCK_TOPIC is not set");
+    let update_slot_topic = env::var("UPDATE_SLOT_TOPIC").expect("UPDATE_SLOT_TOPIC is not set");
     let session_timeout_ms = env::var("SESSION_TIMEOUT_MS").expect("SESSION_TIMEOUT_MS is not set");
 
     let filter_include_owners: AHashSet<String> = env::var("FILTER_INCLUDE_OWNERS")

@@ -3,17 +3,12 @@ use std::sync::Arc;
 use crate::{
     config::FilterConfig,
     db::{DbAccountInfo, DbBlockInfo},
-    db_statements::{
-        create_block_metadata_insert_statement, create_slot_insert_statement_with_parent,
-        create_slot_insert_statement_without_parent,
-    },
 };
 use anyhow::Result;
 use crossbeam_queue::SegQueue;
 use flume::Receiver;
 use kafka_common::kafka_structs::{NotifyBlockMetaData, UpdateAccount, UpdateSlotStatus};
 use log::{error, trace};
-use tokio_postgres::Client;
 
 #[inline(always)]
 async fn check_account(
@@ -89,42 +84,27 @@ pub async fn account_filter(
 }
 
 pub async fn block_filter(
-    config: Arc<FilterConfig>,
-    client: Arc<Client>,
     db_queue: Arc<SegQueue<DbBlockInfo>>,
     filter_rx: Receiver<NotifyBlockMetaData>,
 ) {
     loop {
-        if let Ok(_notify_block_data) = filter_rx.recv_async().await {
-            let _config = config.clone();
-            let client = client.clone();
-            let _db_queue = db_queue.clone();
-
-            tokio::spawn(async move {
-                let _stmt = create_block_metadata_insert_statement(client).await;
-            });
+        if let Ok(notify_block_data) = filter_rx.recv_async().await {
+            match notify_block_data.block_info {
+                kafka_common::kafka_structs::KafkaReplicaBlockInfoVersions::V0_0_1(bi) => {
+                    db_queue.push(bi.into());
+                }
+            }
         }
     }
 }
 
 pub async fn slot_filter(
-    config: Arc<FilterConfig>,
-    client: Arc<Client>,
     slot_db_queue: Arc<SegQueue<UpdateSlotStatus>>,
     filter_rx: Receiver<UpdateSlotStatus>,
 ) {
     loop {
         if let Ok(update_slot) = filter_rx.recv_async().await {
-            let _config = config.clone();
-            let client = client.clone();
-            let _slot_db_queue = slot_db_queue.clone();
-
-            tokio::spawn(async move {
-                let _stmt = match update_slot.parent {
-                    Some(_) => create_slot_insert_statement_with_parent(client).await,
-                    None => create_slot_insert_statement_without_parent(client).await,
-                };
-            });
+            slot_db_queue.push(update_slot)
         }
     }
 }
