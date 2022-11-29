@@ -19,8 +19,8 @@ fast_log = { version = "1.5.46" }
 flume = "0.10.14"
 tokio-postgres = { version = "0.7.7", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2.4", features = ["derive"] }
-solana-runtime = { version = "=1.13.4" }
-solana-transaction-status = { version = "=1.13.4" }
+solana-runtime = { version = "=1.14.7" }
+solana-transaction-status = { version = "=1.14.7" }
 anyhow = "1.0.66"
 bs58 = "0.4.0"
 crossbeam-queue = "0.3.8"

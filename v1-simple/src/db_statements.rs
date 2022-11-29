@@ -21,7 +21,8 @@ pub async fn create_account_insert_statement(client: Arc<Client>) -> Result<Stat
 pub async fn create_block_metadata_insert_statement(client: Arc<Client>) -> Result<Statement> {
     let stmt =
         "INSERT INTO block (slot, blockhash, rewards, block_time, block_height, updated_on) \
-    VALUES ($1, $2, $3, $4, $5, $6)";
+    VALUES ($1, $2, $3, $4, $5, $6) \
+    ON CONFLICT DO NOTHING";
 
     let stmt = client.prepare(stmt).await;
 
