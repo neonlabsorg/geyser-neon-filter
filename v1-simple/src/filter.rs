@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
-use crate::{config::FilterConfig, db::DbAccountInfo};
+use crate::{
+    config::FilterConfig,
+    db::{DbAccountInfo, DbBlockInfo},
+};
 use anyhow::Result;
 use crossbeam_queue::SegQueue;
 use flume::Receiver;
-use kafka_common::kafka_structs::UpdateAccount;
+use kafka_common::kafka_structs::{NotifyBlockMetaData, UpdateAccount, UpdateSlotStatus};
 use log::{error, trace};
 
 #[inline(always)]
@@ -61,7 +64,7 @@ async fn process_account_info(
     Ok(())
 }
 
-pub async fn filter(
+pub async fn account_filter(
     config: Arc<FilterConfig>,
     db_queue: Arc<SegQueue<DbAccountInfo>>,
     filter_rx: Receiver<UpdateAccount>,
@@ -76,6 +79,32 @@ pub async fn filter(
                     error!("Failed to process account info, error: {e}");
                 }
             });
+        }
+    }
+}
+
+pub async fn block_filter(
+    db_queue: Arc<SegQueue<DbBlockInfo>>,
+    filter_rx: Receiver<NotifyBlockMetaData>,
+) {
+    loop {
+        if let Ok(notify_block_data) = filter_rx.recv_async().await {
+            match notify_block_data.block_info {
+                kafka_common::kafka_structs::KafkaReplicaBlockInfoVersions::V0_0_1(bi) => {
+                    db_queue.push(bi.into());
+                }
+            }
+        }
+    }
+}
+
+pub async fn slot_filter(
+    slot_db_queue: Arc<SegQueue<UpdateSlotStatus>>,
+    filter_rx: Receiver<UpdateSlotStatus>,
+) {
+    loop {
+        if let Ok(update_slot) = filter_rx.recv_async().await {
+            slot_db_queue.push(update_slot)
         }
     }
 }

@@ -2,25 +2,33 @@ mod build_info;
 mod config;
 mod consumer;
 mod db;
+mod db_inserts;
+mod db_statements;
 mod filter;
 
 use std::sync::Arc;
 
-use crate::{build_info::get_build_info, consumer::consumer};
+use crate::{
+    build_info::get_build_info,
+    consumer::consumer,
+    db::DbBlockInfo,
+    filter::{block_filter, slot_filter},
+};
 use clap::{Arg, Command};
 use config::{env_build_config, FilterConfig};
 use crossbeam_queue::SegQueue;
-use db::{db_statement_executor, initialize_db_client, DbAccountInfo};
+use db::{db_stmt_executor, initialize_db_client, DbAccountInfo};
 use fast_log::{
     consts::LogSize,
     plugin::{file_split::RollingType, packer::LogPacker},
     Config, Logger,
 };
-use filter::filter;
+use filter::account_filter;
+use kafka_common::kafka_structs::{NotifyBlockMetaData, UpdateAccount, UpdateSlotStatus};
 use log::{error, info};
 use tokio::fs;
 
-async fn run(config: FilterConfig) {
+async fn run(mut config: FilterConfig) {
     let logger: &'static Logger = fast_log::init(Config::new().console().file_split(
         &config.filter_log_path,
         LogSize::KB(512),
@@ -31,22 +39,77 @@ async fn run(config: FilterConfig) {
 
     info!("{}", get_build_info());
 
+    let update_account_topic = config
+        .update_account_topic
+        .take()
+        .expect("update_account_topic is not present in config");
+
+    let notify_block_topic = config
+        .notify_block_topic
+        .take()
+        .expect("notify_block_topic is not present in config");
+
+    let update_slot_topic = config
+        .update_slot_topic
+        .take()
+        .expect("notify_slot_topic is not present in config");
+
     let config = Arc::new(config);
-    let db_queue: Arc<SegQueue<DbAccountInfo>> = Arc::new(SegQueue::new());
+
+    let db_account_queue: Arc<SegQueue<DbAccountInfo>> = Arc::new(SegQueue::new());
+    let db_block_queue: Arc<SegQueue<DbBlockInfo>> = Arc::new(SegQueue::new());
+    let db_slot_queue: Arc<SegQueue<UpdateSlotStatus>> = Arc::new(SegQueue::new());
 
     logger.set_level((&config.global_log_level).into());
 
     let client = initialize_db_client(config.clone()).await;
 
-    let (filter_tx, filter_rx) = flume::unbounded();
-    let filter_loop_handle = tokio::spawn(filter(config.clone(), db_queue.clone(), filter_rx));
-    let consumer_loop_handle = tokio::spawn(consumer(config.clone(), filter_tx));
-    let db_statement_executor_handle =
-        tokio::spawn(db_statement_executor(config, client, db_queue));
+    let (filter_tx_account, filter_rx_account) = flume::unbounded::<UpdateAccount>();
+    let (filter_tx_slots, filter_rx_slots) = flume::unbounded::<UpdateSlotStatus>();
+    let (filter_tx_block, filter_rx_block) = flume::unbounded::<NotifyBlockMetaData>();
 
-    let _ = consumer_loop_handle.await;
-    let _ = filter_loop_handle.await;
-    let _ = db_statement_executor_handle.await;
+    let account_filter = tokio::spawn(account_filter(
+        config.clone(),
+        db_account_queue.clone(),
+        filter_rx_account,
+    ));
+
+    let block_filter = tokio::spawn(block_filter(db_block_queue.clone(), filter_rx_block));
+
+    let slot_filter = tokio::spawn(slot_filter(db_slot_queue.clone(), filter_rx_slots));
+
+    let consumer_update_account = tokio::spawn(consumer(
+        config.clone(),
+        update_account_topic,
+        filter_tx_account,
+    ));
+
+    let consumer_update_slot =
+        tokio::spawn(consumer(config.clone(), update_slot_topic, filter_tx_slots));
+
+    let consumer_notify_block = tokio::spawn(consumer(
+        config.clone(),
+        notify_block_topic,
+        filter_tx_block,
+    ));
+
+    let db_stmt_executor = tokio::spawn(db_stmt_executor(
+        config.clone(),
+        client,
+        db_account_queue,
+        db_block_queue,
+        db_slot_queue,
+    ));
+
+    let _ = tokio::join!(
+        consumer_update_account,
+        consumer_update_slot,
+        consumer_notify_block,
+        account_filter,
+        block_filter,
+        slot_filter,
+        db_stmt_executor
+    );
 }
 
 #[tokio::main]
