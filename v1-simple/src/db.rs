@@ -207,6 +207,77 @@ async fn connect_to_db(config: Arc<FilterConfig>) -> Result<Arc<Client>> {
     Ok(Arc::new(client))
 }
 
+async fn account_stmt_executor(client: Arc<Client>, account_queue: Arc<SegQueue<DbAccountInfo>>) {
+    if let Some(db_account_info) = account_queue.pop() {
+        tokio::spawn(async move {
+            let statement = match create_account_insert_statement(client.clone()).await {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Failed to execute create_account_insert_statement, error {e}");
+                    account_queue.push(db_account_info);
+                    return;
+                }
+            };
+
+            if let Err(error) =
+                insert_into_account_audit(&db_account_info, &statement, client).await
+            {
+                error!("Failed to insert the data to account_audit, error: {error}");
+                // Push account_info back to the database queue
+                account_queue.push(db_account_info);
+            }
+        });
+    }
+}
+
+async fn block_stmt_executor(client: Arc<Client>, block_queue: Arc<SegQueue<DbBlockInfo>>) {
+    if let Some(db_block_info) = block_queue.pop() {
+        tokio::spawn(async move {
+            let statement = match create_block_metadata_insert_statement(client.clone()).await {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Failed to prepare create_block_metadata_insert_statement, error {e}");
+                    block_queue.push(db_block_info);
+                    return;
+                }
+            };
+
+            if let Err(error) = insert_into_block_metadata(&db_block_info, &statement, client).await
+            {
+                error!("Failed to insert the data to block_metadata, error: {error}");
+                // Push block_info back to the database queue
+                block_queue.push(db_block_info);
+            }
+        });
+    }
+}
+
+async fn slot_stmt_executor(client: Arc<Client>, slot_queue: Arc<SegQueue<UpdateSlotStatus>>) {
+    if let Some(db_slot_info) = slot_queue.pop() {
+        tokio::spawn(async move {
+            let statement = match db_slot_info.parent {
+                Some(_) => create_slot_insert_statement_with_parent(client.clone()).await,
+                None => create_slot_insert_statement_without_parent(client.clone()).await,
+            };
+
+            match statement {
+                Ok(statement) => {
+                    if let Err(e) =
+                        insert_slot_status_internal(&db_slot_info, &statement, client).await
+                    {
+                        error!("Failed to execute insert_slot_status_internal, error {e}");
+                        slot_queue.push(db_slot_info);
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to prepare create_slot_insert_statement, error {e}");
+                    slot_queue.push(db_slot_info);
+                }
+            }
+        });
+    }
+}
+
 pub async fn db_stmt_executor(
     config: Arc<FilterConfig>,
     mut client: Arc<Client>,
@@ -226,80 +297,8 @@ pub async fn db_stmt_executor(
             idle_interval.tick().await;
         }
 
-        if let Some(db_account_info) = account_queue.pop() {
-            let client = client.clone();
-            let account_queue = account_queue.clone();
-
-            tokio::spawn(async move {
-                let statement = match create_account_insert_statement(client.clone()).await {
-                    Ok(s) => s,
-                    Err(e) => {
-                        error!("Failed to execute create_account_insert_statement, error {e}");
-                        account_queue.push(db_account_info);
-                        return;
-                    }
-                };
-
-                if let Err(error) =
-                    insert_into_account_audit(&db_account_info, &statement, client).await
-                {
-                    error!("Failed to insert the data to account_audit, error: {error}");
-                    // Push account_info back to the database queue
-                    account_queue.push(db_account_info);
-                }
-            });
-        }
-
-        if let Some(db_block_info) = block_queue.pop() {
-            let client = client.clone();
-            let block_queue = block_queue.clone();
-
-            tokio::spawn(async move {
-                let statement = match create_block_metadata_insert_statement(client.clone()).await {
-                    Ok(s) => s,
-                    Err(e) => {
-                        error!(
-                            "Failed to prepare create_block_metadata_insert_statement, error {e}"
-                        );
-                        block_queue.push(db_block_info);
-                        return;
-                    }
-                };
-                if let Err(error) =
-                    insert_into_block_metadata(&db_block_info, &statement, client).await
-                {
-                    error!("Failed to insert the data to block_metadata, error: {error}");
-                    // Push block_info back to the database queue
-                    block_queue.push(db_block_info);
-                }
-            });
-        }
-
-        if let Some(db_slot_info) = slot_queue.pop() {
-            let client = client.clone();
-            let slot_queue = slot_queue.clone();
-
-            tokio::spawn(async move {
-                let statement = match db_slot_info.parent {
-                    Some(_) => create_slot_insert_statement_with_parent(client.clone()).await,
-                    None => create_slot_insert_statement_without_parent(client.clone()).await,
-                };
-
-                match statement {
-                    Ok(statement) => {
-                        if let Err(e) =
-                            insert_slot_status_internal(&db_slot_info, &statement, client).await
-                        {
-                            error!("Failed to execute insert_slot_status_internal, error {e}");
-                            slot_queue.push(db_slot_info);
-                        }
-                    }
-                    Err(e) => {
-                        error!("Failed to prepare create_slot_insert_statement, error {e}");
-                        slot_queue.push(db_slot_info);
-                    }
-                }
-            });
-        }
+        account_stmt_executor(client.clone(), account_queue.clone()).await;
+        block_stmt_executor(client.clone(), block_queue.clone()).await;
+        slot_stmt_executor(client.clone(), slot_queue.clone()).await;
     }
 }
