@@ -13,7 +13,7 @@ use log::{error, trace};
 #[inline(always)]
 async fn check_account(
     config: Arc<FilterConfig>,
-    db_queue: Arc<SegQueue<DbAccountInfo>>,
+    account_queue: Arc<SegQueue<DbAccountInfo>>,
     update_account: &UpdateAccount,
     owner: &Vec<u8>,
     pubkey: &Vec<u8>,
@@ -23,7 +23,7 @@ async fn check_account(
     if config.filter_include_pubkeys.contains(&pubkey)
         || config.filter_include_owners.contains(&owner)
     {
-        db_queue.push(update_account.try_into()?);
+        account_queue.push(update_account.try_into()?);
         trace!(
             "Add update_account entry to db queue for pubkey {} owner {}",
             pubkey,
@@ -35,7 +35,7 @@ async fn check_account(
 
 async fn process_account_info(
     config: Arc<FilterConfig>,
-    db_queue: Arc<SegQueue<DbAccountInfo>>,
+    account_queue: Arc<SegQueue<DbAccountInfo>>,
     update_account: UpdateAccount,
 ) -> Result<()> {
     match &update_account.account {
@@ -43,7 +43,7 @@ async fn process_account_info(
         kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_1(account_info) => {
             check_account(
                 config,
-                db_queue,
+                account_queue,
                 &update_account,
                 &account_info.owner,
                 &account_info.pubkey,
@@ -53,7 +53,7 @@ async fn process_account_info(
         kafka_common::kafka_structs::KafkaReplicaAccountInfoVersions::V0_0_2(account_info) => {
             check_account(
                 config,
-                db_queue,
+                account_queue,
                 &update_account,
                 &account_info.owner,
                 &account_info.pubkey,
@@ -66,16 +66,16 @@ async fn process_account_info(
 
 pub async fn account_filter(
     config: Arc<FilterConfig>,
-    db_queue: Arc<SegQueue<DbAccountInfo>>,
+    account_queue: Arc<SegQueue<DbAccountInfo>>,
     filter_rx: Receiver<UpdateAccount>,
 ) {
     loop {
         if let Ok(update_account) = filter_rx.recv_async().await {
             let config = config.clone();
-            let db_queue = db_queue.clone();
+            let account_queue = account_queue.clone();
 
             tokio::spawn(async move {
-                if let Err(e) = process_account_info(config, db_queue, update_account).await {
+                if let Err(e) = process_account_info(config, account_queue, update_account).await {
                     error!("Failed to process account info, error: {e}");
                 }
             });
@@ -84,14 +84,14 @@ pub async fn account_filter(
 }
 
 pub async fn block_filter(
-    db_queue: Arc<SegQueue<DbBlockInfo>>,
+    block_queue: Arc<SegQueue<DbBlockInfo>>,
     filter_rx: Receiver<NotifyBlockMetaData>,
 ) {
     loop {
         if let Ok(notify_block_data) = filter_rx.recv_async().await {
             match notify_block_data.block_info {
                 kafka_common::kafka_structs::KafkaReplicaBlockInfoVersions::V0_0_1(bi) => {
-                    db_queue.push(bi.into());
+                    block_queue.push(bi.into());
                 }
             }
         }
