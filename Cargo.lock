@@ -1627,7 +1627,7 @@ dependencies = [
 [[package]]
 name = "kafka_common"
 version = "0.1.0"
-source = "git+https://github.com/neonlabsorg/geyser-neon-plugin.git?branch=main#a063b7cdf9e4222e306f8c8bdb59cf1bf7b12011"
+source = "git+https://github.com/neonlabsorg/geyser-neon-plugin.git?branch=main#d02aeec765f63e040f207350dbc009dc00ceeb3e"
 dependencies = [
  "blake3",
  "chrono",
