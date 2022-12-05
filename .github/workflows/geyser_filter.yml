@@ -100,8 +100,11 @@ jobs:
       - name: Build and push for filter v1
         env:
           IMAGE_TAG: ${{ github.sha }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
         uses: docker/build-push-action@v3
         with:
           file: Dockerfile
           push: true
-          tags: neonlabsorg/geyser-neon-filter:${{ env.IMAGE_TAG }}
+          tags: |
+            neonlabsorg/geyser-neon-filter:${{ env.IMAGE_TAG }}
+            neonlabsorg/geyser-neon-filter:${{ env.BRANCH_NAME }}
