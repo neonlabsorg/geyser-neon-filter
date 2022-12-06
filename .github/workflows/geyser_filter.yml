@@ -106,5 +106,5 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            neonlabsorg/geyser-neon-solana:${{ env.IMAGE_TAG }}
-            neonlabsorg/geyser-neon-solana:${{ env.BRANCH_NAME }}
+            neonlabsorg/geyser-neon-filter:${{ env.IMAGE_TAG }}
+            neonlabsorg/geyser-neon-filter:${{ env.BRANCH_NAME }}
