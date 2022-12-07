@@ -9,7 +9,7 @@ networks:
           gateway: 10.1.0.1
 
 x-clickhouse-common: &clickhouse-common
-  image: docker.io/clickhouse/clickhouse-server:22.6.9.11-alpine
+  image: docker.io/clickhouse/clickhouse-server:22.11.2.30-alpine
   ulimits:
     nproc: 65535
     nofile:
@@ -118,29 +118,6 @@ services:
       timeout: 3s
       retries: 3
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.2.2
-    hostname: schema-registry
-    container_name: schema-registry
-    depends_on:
-      kafka:
-        condition: service_healthy
-    ports:
-      - "8081:8081"
-    networks:
-      network:
-        ipv4_address: 10.1.0.7
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
-      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
-    healthcheck:
-      test: curl -f -LI schema-registry:8081
-      interval: 15s
-      timeout: 5s
-      retries: 2
-      start_period: 15s
-
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.4.0
     container_name: kafka-ui
@@ -148,7 +125,7 @@ services:
       - "8080:8080"
     networks:
       network:
-        ipv4_address: 10.1.0.8
+        ipv4_address: 10.1.0.7
     restart: always
     depends_on:
       kafka:
@@ -158,30 +135,30 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
 
   kafka-producer:
-    image: docker.io/cnfldemos/kafka-connect-datagen:0.6.0-7.2.1
+    image: docker.io/bitnami/kafka:3.3.1
     user: 0:0
     restart: "no"
     command:
       - /bin/sh
       - -c
       - |
-        dnf -y update && dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && dnf -y install p7zip p7zip-plugins
+        apt update && apt install -y p7zip-full
         7za x /var/json-data/kafka_topics.7z -o/var/json-data/ -aos
-        kafka-console-producer --broker-list kafka:29092 --topic update_slot --property "parse.key=true" < /var/json-data/update_slot.topic
-        kafka-console-producer --broker-list kafka:29092 --topic notify_block --property "parse.key=true" < /var/json-data/notify_block.topic
-        kafka-console-producer --broker-list kafka:29092 --topic notify_transaction --property "parse.key=true" < /var/json-data/notify_transaction.topic
-        kafka-console-producer --broker-list kafka:29092 --topic update_account --property "parse.key=true" < /var/json-data/update_account.topic
+        kafka-console-producer.sh --broker-list kafka:29092 --topic update_slot --property "parse.key=true" < /var/json-data/update_slot.topic
+        kafka-console-producer.sh --broker-list kafka:29092 --topic notify_block --property "parse.key=true" < /var/json-data/notify_block.topic
+        kafka-console-producer.sh --broker-list kafka:29092 --topic notify_transaction --property "parse.key=true" < /var/json-data/notify_transaction.topic
+        kafka-console-producer.sh --broker-list kafka:29092 --topic update_account --property "parse.key=true" < /var/json-data/update_account.topic
     volumes:
       - ./json-data/kafka_topics.7z:/var/json-data/kafka_topics.7z
     depends_on:
-      schema-registry:
+      kafka:
         condition: service_healthy
     networks:
       network:
-        ipv4_address: 10.1.0.9
+        ipv4_address: 10.1.0.8
 
   clickhouse-client:
-    image: docker.io/clickhouse/clickhouse-server:22.6.9.11-alpine
+    image: docker.io/clickhouse/clickhouse-server:22.11.2.30-alpine
     restart: "no"
     volumes:
       - ./clickhouse:/var/clickhouse
@@ -198,4 +175,4 @@ services:
         condition: service_completed_successfully
     networks:
       network:
-        ipv4_address: 10.1.0.10
+        ipv4_address: 10.1.0.9
