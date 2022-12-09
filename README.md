@@ -20,6 +20,7 @@ An example configuration file looks like the following:
     "notify_block_topic": "notify_block",
     "update_slot_topic": "update_slot",
     "session_timeout_ms": "45000",
+    "fetch_message_max_bytes": "104857600",
     "filter_include_owners" : ["base58_string","base58_string"],
     "filter_include_pubkeys" : ["base58_string","base58_string"],
     "kafka_log_level": "Info",
