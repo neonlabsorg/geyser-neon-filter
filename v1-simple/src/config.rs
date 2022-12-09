@@ -89,6 +89,8 @@ pub fn env_build_config() -> FilterConfig {
     let notify_block_topic = env::var("NOTIFY_BLOCK_TOPIC").expect("NOTIFY_BLOCK_TOPIC is not set");
     let update_slot_topic = env::var("UPDATE_SLOT_TOPIC").expect("UPDATE_SLOT_TOPIC is not set");
     let session_timeout_ms = env::var("SESSION_TIMEOUT_MS").expect("SESSION_TIMEOUT_MS is not set");
+    let fetch_message_max_bytes =
+        env::var("FETCH_MESSAGE_MAX_BYTES").expect("FETCH_MESSAGE_MAX_BYTES is not set");
 
     let filter_include_owners: AHashSet<String> = env::var("FILTER_INCLUDE_OWNERS")
         .expect("FILTER_INCLUDE_OWNERS is not set")
@@ -124,6 +126,7 @@ pub fn env_build_config() -> FilterConfig {
         update_slot_topic: Some(update_slot_topic),
         notify_block_topic: Some(notify_block_topic),
         session_timeout_ms,
+        fetch_message_max_bytes,
         filter_include_owners,
         filter_include_pubkeys,
         kafka_log_level,
@@ -145,6 +148,7 @@ pub struct FilterConfig {
     pub update_slot_topic: Option<String>,
     pub notify_block_topic: Option<String>,
     pub session_timeout_ms: String,
+    pub fetch_message_max_bytes: String,
     // Filter by account owners in base58
     pub filter_include_owners: AHashSet<String>,
     // Alway include list for filter ( public keys from 32 to 44 characters in base58 )

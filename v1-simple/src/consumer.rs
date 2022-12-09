@@ -33,6 +33,7 @@ where
         .set("bootstrap.servers", &config.bootstrap_servers)
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", &config.session_timeout_ms)
+        .set("fetch.message.max.bytes", &config.fetch_message_max_bytes)
         .set("enable.auto.commit", "true")
         .set("security.protocol", &config.security_protocol)
         .set("sasl.mechanism", &config.sasl_mechanism)
