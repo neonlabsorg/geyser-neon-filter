@@ -25,7 +25,7 @@ async fn check_account(
     {
         account_queue.push(update_account.try_into()?);
         trace!(
-            "Add update_account entry to db queue for pubkey {} owner {}",
+            "Add update_account entry to db queue for pubkey {}, owner {}",
             pubkey,
             owner
         );
@@ -99,12 +99,12 @@ pub async fn block_filter(
 }
 
 pub async fn slot_filter(
-    slot_db_queue: Arc<SegQueue<UpdateSlotStatus>>,
+    slot_queue: Arc<SegQueue<UpdateSlotStatus>>,
     filter_rx: Receiver<UpdateSlotStatus>,
 ) {
     loop {
         if let Ok(update_slot) = filter_rx.recv_async().await {
-            slot_db_queue.push(update_slot)
+            slot_queue.push(update_slot)
         }
     }
 }

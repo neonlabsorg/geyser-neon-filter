@@ -43,9 +43,9 @@ where
         .create()
         .expect("Consumer creation failed");
 
-    consumer
-        .subscribe(&[&topic])
-        .unwrap_or_else(|_| panic!("Couldn't subscribe to specified topic with {type_name}"));
+    consumer.subscribe(&[&topic]).unwrap_or_else(|e| {
+        panic!("Couldn't subscribe to specified topic with {type_name}, error: {e}")
+    });
 
     info!("The consumer loop for {type_name} is about to start!");
 
