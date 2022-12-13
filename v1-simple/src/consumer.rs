@@ -9,7 +9,7 @@ use rdkafka::{
 };
 use serde::Deserialize;
 
-use crate::config::FilterConfig;
+use crate::{config::FilterConfig, consumer_stats::ContextWithStats};
 
 pub fn extract_from_message<'a>(message: &'a BorrowedMessage<'a>) -> Option<&'a str> {
     let payload = match message.payload_view::<str>() {
@@ -28,7 +28,7 @@ where
     T: for<'a> Deserialize<'a> + std::marker::Send + 'static,
 {
     let type_name = std::any::type_name::<T>();
-    let consumer: StreamConsumer = ClientConfig::new()
+    let consumer: StreamConsumer<ContextWithStats> = ClientConfig::new()
         .set("group.id", &config.kafka_consumer_group_id)
         .set("bootstrap.servers", &config.bootstrap_servers)
         .set("enable.partition.eof", "false")
@@ -40,7 +40,7 @@ where
         .set("sasl.username", &config.sasl_username)
         .set("sasl.password", &config.sasl_password)
         .set_log_level((&config.kafka_log_level).into())
-        .create()
+        .create_with_context(ContextWithStats)
         .expect("Consumer creation failed");
 
     consumer.subscribe(&[&topic]).unwrap_or_else(|e| {

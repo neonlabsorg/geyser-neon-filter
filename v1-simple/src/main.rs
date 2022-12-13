@@ -1,6 +1,7 @@
 mod build_info;
 mod config;
 mod consumer;
+mod consumer_stats;
 mod db;
 mod db_inserts;
 mod db_statements;
