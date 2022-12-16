@@ -1,16 +1,19 @@
 mod build_info;
 mod config;
 mod consumer;
+mod consumer_stats;
 mod db;
 mod db_inserts;
 mod db_statements;
 mod filter;
+mod prometheus;
 
 use std::sync::Arc;
 
 use crate::{
     build_info::get_build_info,
     consumer::consumer,
+    consumer_stats::ContextWithStats,
     db::DbBlockInfo,
     filter::{block_filter, slot_filter},
 };
@@ -26,6 +29,7 @@ use fast_log::{
 use filter::account_filter;
 use kafka_common::kafka_structs::{NotifyBlockMetaData, UpdateAccount, UpdateSlotStatus};
 use log::{error, info};
+use prometheus::start_prometheus;
 use tokio::fs;
 
 async fn run(mut config: FilterConfig) {
@@ -38,6 +42,15 @@ async fn run(mut config: FilterConfig) {
     .expect("Failed to initialize fast_log");
 
     info!("{}", get_build_info());
+
+    let prometheus_port = config
+        .prometheus_port
+        .parse()
+        .unwrap_or_else(|e| panic!("Wrong prometheus port number, error: {e}"));
+
+    let ctx_stats = ContextWithStats::default();
+
+    let prometheus = tokio::spawn(start_prometheus(ctx_stats.stats.clone(), prometheus_port));
 
     let update_account_topic = config
         .update_account_topic
@@ -82,15 +95,21 @@ async fn run(mut config: FilterConfig) {
         config.clone(),
         update_account_topic,
         filter_tx_account,
+        ctx_stats.clone(),
     ));
 
-    let consumer_update_slot =
-        tokio::spawn(consumer(config.clone(), update_slot_topic, filter_tx_slots));
+    let consumer_update_slot = tokio::spawn(consumer(
+        config.clone(),
+        update_slot_topic,
+        filter_tx_slots,
+        ctx_stats.clone(),
+    ));
 
     let consumer_notify_block = tokio::spawn(consumer(
         config.clone(),
         notify_block_topic,
         filter_tx_block,
+        ctx_stats,
     ));
 
     let db_stmt_executor = tokio::spawn(db_stmt_executor(
@@ -108,7 +127,8 @@ async fn run(mut config: FilterConfig) {
         account_filter,
         block_filter,
         slot_filter,
-        db_stmt_executor
+        db_stmt_executor,
+        prometheus,
     );
 }
 
