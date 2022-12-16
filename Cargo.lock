@@ -1265,6 +1265,7 @@ dependencies = [
  "crossbeam-queue",
  "fast_log",
  "flume",
+ "hyper",
  "kafka_common",
  "log",
  "postgres-types",

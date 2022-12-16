@@ -91,6 +91,7 @@ pub fn env_build_config() -> FilterConfig {
     let session_timeout_ms = env::var("SESSION_TIMEOUT_MS").expect("SESSION_TIMEOUT_MS is not set");
     let fetch_message_max_bytes =
         env::var("FETCH_MESSAGE_MAX_BYTES").expect("FETCH_MESSAGE_MAX_BYTES is not set");
+    let prometheus_port = env::var("PROMETHEUS_PORT").expect("PROMETHEUS_PORT is not set");
 
     let filter_include_owners: AHashSet<String> = env::var("FILTER_INCLUDE_OWNERS")
         .expect("FILTER_INCLUDE_OWNERS is not set")
@@ -133,6 +134,7 @@ pub fn env_build_config() -> FilterConfig {
         filter_include_owners,
         filter_include_pubkeys,
         statistics_interval_ms,
+        prometheus_port,
         kafka_log_level,
         global_log_level,
     }
@@ -158,6 +160,7 @@ pub struct FilterConfig {
     // Alway include list for filter ( public keys from 32 to 44 characters in base58 )
     pub filter_include_pubkeys: AHashSet<String>,
     pub statistics_interval_ms: String,
+    pub prometheus_port: String,
     pub kafka_log_level: LogLevel,
     pub global_log_level: GlobalLogLevel,
 }

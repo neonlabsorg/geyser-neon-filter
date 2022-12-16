@@ -6,6 +6,7 @@ mod db;
 mod db_inserts;
 mod db_statements;
 mod filter;
+mod prometheus;
 
 use std::sync::Arc;
 
@@ -28,6 +29,7 @@ use fast_log::{
 use filter::account_filter;
 use kafka_common::kafka_structs::{NotifyBlockMetaData, UpdateAccount, UpdateSlotStatus};
 use log::{error, info};
+use prometheus::start_prometheus;
 use tokio::fs;
 
 async fn run(mut config: FilterConfig) {
@@ -40,6 +42,15 @@ async fn run(mut config: FilterConfig) {
     .expect("Failed to initialize fast_log");
 
     info!("{}", get_build_info());
+
+    let prometheus_port = config
+        .prometheus_port
+        .parse()
+        .unwrap_or_else(|e| panic!("Wrong prometheus port number, error: {e}"));
+
+    let ctx_stats = ContextWithStats::default();
+
+    let prometheus = tokio::spawn(start_prometheus(ctx_stats.stats.clone(), prometheus_port));
 
     let update_account_topic = config
         .update_account_topic
@@ -80,8 +91,6 @@ async fn run(mut config: FilterConfig) {
 
     let slot_filter = tokio::spawn(slot_filter(db_slot_queue.clone(), filter_rx_slots));
 
-    let ctx_stats = ContextWithStats::default();
-
     let consumer_update_account = tokio::spawn(consumer(
         config.clone(),
         update_account_topic,
@@ -118,7 +127,8 @@ async fn run(mut config: FilterConfig) {
         account_filter,
         block_filter,
         slot_filter,
-        db_stmt_executor
+        db_stmt_executor,
+        prometheus,
     );
 }
 

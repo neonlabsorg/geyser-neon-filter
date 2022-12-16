@@ -28,6 +28,7 @@ strum = "0.24"
 strum_macros = "0.24"
 build-info = { git = "https://github.com/danielschemmel/build-info", rev = "8d6e7e95d5ae046591e3c0d4ae16fdaba79b3cc7" }
 prometheus-client = "0.18.1"
+hyper = { version = "0.14.23", features = ["server", "http1", "tcp"] }
 
 [build-dependencies]
 build-info-build = { git = "https://github.com/danielschemmel/build-info", rev = "8d6e7e95d5ae046591e3c0d4ae16fdaba79b3cc7" }
