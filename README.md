@@ -23,6 +23,7 @@ An example configuration file looks like the following:
     "filter_include_owners" : ["base58_string","base58_string"],
     "filter_include_pubkeys" : ["base58_string","base58_string"],
     "statistics_interval_ms" : "0",
+    "prometheus_port": "9090",
     "kafka_log_level": "Info",
     "global_log_level": "Info"
 }
@@ -45,6 +46,7 @@ SESSION_TIMEOUT_MS="45000"
 FILTER_INCLUDE_OWNERS="owner_base58,owner2_base58"
 FILTER_INCLUDE_PUBKEYS="pubkey_base58,pubkey2_base58"
 STATISTICS_INTERVAL_MS="0"
+PROMETHEUS_PORT="9090"
 KAFKA_LOG_LEVEL="Info"
 GLOBAL_LOG_LEVEL="Info"
 ```
