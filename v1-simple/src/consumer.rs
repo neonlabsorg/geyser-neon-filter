@@ -55,6 +55,7 @@ pub async fn consumer<T>(
         .set("bootstrap.servers", &config.bootstrap_servers)
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", &config.session_timeout_ms)
+        .set("fetch.message.max.bytes", &config.fetch_message_max_bytes)
         .set("enable.auto.commit", "true")
         .set("security.protocol", &config.security_protocol)
         .set("sasl.mechanism", &config.sasl_mechanism)
@@ -64,9 +65,9 @@ pub async fn consumer<T>(
         .create_with_context(ctx_stats)
         .expect("Consumer creation failed");
 
-    consumer
-        .subscribe(&[&topic])
-        .unwrap_or_else(|_| panic!("Couldn't subscribe to specified topic with {type_name}"));
+    consumer.subscribe(&[&topic]).unwrap_or_else(|e| {
+        panic!("Couldn't subscribe to specified topic with {type_name}, error: {e}")
+    });
 
     info!("The consumer loop for {type_name} is about to start!");
 

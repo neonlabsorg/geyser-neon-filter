@@ -20,6 +20,7 @@ An example configuration file looks like the following:
     "notify_block_topic": "notify_block",
     "update_slot_topic": "update_slot",
     "session_timeout_ms": "45000",
+    "fetch_message_max_bytes": "104857600",
     "filter_include_owners" : ["base58_string","base58_string"],
     "filter_include_pubkeys" : ["base58_string","base58_string"],
     "statistics_interval_ms" : "0",
@@ -43,6 +44,7 @@ UPDATE_ACCOUNT_TOPIC="update_account"
 NOTIFY_BLOCK_TOPIC="notify_block"
 UPDATE_SLOT_TOPIC="update_slot"
 SESSION_TIMEOUT_MS="45000"
+FETCH_MESSAGE_MAX_BYTES="104857600"
 FILTER_INCLUDE_OWNERS="owner_base58,owner2_base58"
 FILTER_INCLUDE_PUBKEYS="pubkey_base58,pubkey2_base58"
 STATISTICS_INTERVAL_MS="0"
