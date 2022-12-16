@@ -102,6 +102,9 @@ pub fn env_build_config() -> FilterConfig {
         .map(|s| s.trim().to_string())
         .collect();
 
+    let statistics_interval_ms =
+        env::var("STATISTICS_INTERVAL_MS").expect("SESSION_TIMEOUT_MS is not set");
+
     let kafka_log_level: LogLevel =
         LogLevel::from_str(&env::var("KAFKA_LOG_LEVEL").expect("KAFKA_LOG_LEVEL is not set"))
             .unwrap_or(LogLevel::Info);
@@ -126,6 +129,7 @@ pub fn env_build_config() -> FilterConfig {
         session_timeout_ms,
         filter_include_owners,
         filter_include_pubkeys,
+        statistics_interval_ms,
         kafka_log_level,
         global_log_level,
     }
@@ -149,6 +153,7 @@ pub struct FilterConfig {
     pub filter_include_owners: AHashSet<String>,
     // Alway include list for filter ( public keys from 32 to 44 characters in base58 )
     pub filter_include_pubkeys: AHashSet<String>,
+    pub statistics_interval_ms: String,
     pub kafka_log_level: LogLevel,
     pub global_log_level: GlobalLogLevel,
 }

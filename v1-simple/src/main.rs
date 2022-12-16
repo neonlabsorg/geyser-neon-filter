@@ -12,6 +12,7 @@ use std::sync::Arc;
 use crate::{
     build_info::get_build_info,
     consumer::consumer,
+    consumer_stats::ContextWithStats,
     db::DbBlockInfo,
     filter::{block_filter, slot_filter},
 };
@@ -79,19 +80,27 @@ async fn run(mut config: FilterConfig) {
 
     let slot_filter = tokio::spawn(slot_filter(db_slot_queue.clone(), filter_rx_slots));
 
+    let ctx_stats = ContextWithStats::default();
+
     let consumer_update_account = tokio::spawn(consumer(
         config.clone(),
         update_account_topic,
         filter_tx_account,
+        ctx_stats.clone(),
     ));
 
-    let consumer_update_slot =
-        tokio::spawn(consumer(config.clone(), update_slot_topic, filter_tx_slots));
+    let consumer_update_slot = tokio::spawn(consumer(
+        config.clone(),
+        update_slot_topic,
+        filter_tx_slots,
+        ctx_stats.clone(),
+    ));
 
     let consumer_notify_block = tokio::spawn(consumer(
         config.clone(),
         notify_block_topic,
         filter_tx_block,
+        ctx_stats,
     ));
 
     let db_stmt_executor = tokio::spawn(db_stmt_executor(
