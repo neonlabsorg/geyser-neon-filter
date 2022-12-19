@@ -21,7 +21,7 @@ tokio-postgres = { version = "0.7.7", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2.4", features = ["derive"] }
 solana-runtime = { version = "1.14.10" }
 solana-transaction-status = { version = "1.14.10" }
-anyhow = "1.0.66"
+anyhow = "1.0.68"
 bs58 = "0.4.0"
 crossbeam-queue = "0.3.8"
 strum = "0.24"
