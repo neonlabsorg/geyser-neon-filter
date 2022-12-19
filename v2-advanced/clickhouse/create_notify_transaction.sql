@@ -3,18 +3,21 @@ CREATE DATABASE IF NOT EXISTS events ON CLUSTER 'events';
 CREATE TABLE IF NOT EXISTS events.notify_transaction_local ON CLUSTER '{cluster}' (
     slot UInt64 CODEC(DoubleDelta, ZSTD),
     signature Array(UInt8) CODEC(ZSTD),
-    notify_transaction_json String CODEC(ZSTD(5))
+    notify_transaction_json String CODEC(ZSTD(5)),
+    retrieved_time DateTime64 CODEC(T64, ZSTD)
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/notify_transaction_local',
     '{replica}'
 ) PRIMARY KEY (signature, slot)
+PARTITION BY toYYYYMMDD(retrieved_time)
 ORDER BY (signature, slot);
 
 CREATE TABLE IF NOT EXISTS events.notify_transaction_main ON CLUSTER '{cluster}' AS events.notify_transaction_local
 ENGINE = Distributed('{cluster}', events, notify_transaction_local, rand());
 
 CREATE TABLE IF NOT EXISTS events.notify_transaction_queue ON CLUSTER '{cluster}' (
-    notify_transaction_json String
+    notify_transaction_json String,
+    retrieved_time DateTime64 DEFAULT now64()
 )   ENGINE = Kafka SETTINGS
     kafka_broker_list = 'kafka:29092',
     kafka_topic_list = 'notify_transaction',

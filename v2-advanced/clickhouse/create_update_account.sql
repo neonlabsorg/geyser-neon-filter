@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS events.update_account_local ON CLUSTER '{cluster}' (
     txn_signature Array(Nullable(UInt8)) CODEC(ZSTD),
     slot UInt64 CODEC(DoubleDelta),
     is_startup Bool CODEC(Gorilla),
+    retrieved_time DateTime64 CODEC(T64, ZSTD),
     INDEX slot_idx slot TYPE set(100) GRANULARITY 2,
     INDEX write_idx write_version TYPE set(100) GRANULARITY 2
 ) ENGINE = ReplicatedMergeTree(
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS events.update_account_local ON CLUSTER '{cluster}' (
     '{replica}'
 ) PRIMARY KEY (pubkey, slot, write_version)
 ORDER BY (pubkey, slot, write_version)
+PARTITION BY toYYYYMMDD(retrieved_time)
 SETTINGS index_granularity=8192;
 
 CREATE TABLE IF NOT EXISTS events.update_account_main ON CLUSTER '{cluster}' AS events.update_account_local
@@ -33,7 +35,8 @@ CREATE TABLE IF NOT EXISTS events.update_account_queue ON CLUSTER '{cluster}' (
     write_version UInt64,
     txn_signature Array(Nullable(UInt8)),
     slot UInt64,
-    is_startup Bool
+    is_startup Bool,
+    retrieved_time DateTime64 DEFAULT now64()
 )   ENGINE = Kafka SETTINGS
     kafka_broker_list = 'kafka:29092',
     kafka_topic_list = 'update_account',

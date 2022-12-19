@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS events.update_slot_local ON CLUSTER '{cluster}' (
     '/clickhouse/tables/{shard}/update_slot_local',
     '{replica}'
 ) PRIMARY KEY(slot)
+PARTITION BY toYYYYMMDD(retrieved_time)
 ORDER BY (slot);
 
 CREATE TABLE IF NOT EXISTS events.update_slot_main ON CLUSTER '{cluster}' AS events.update_slot_local ENGINE = Distributed('{cluster}', events, update_slot_local, rand());

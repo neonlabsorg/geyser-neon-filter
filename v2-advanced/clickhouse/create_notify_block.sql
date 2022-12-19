@@ -4,12 +4,13 @@ CREATE TABLE IF NOT EXISTS events.notify_block_local ON CLUSTER '{cluster}' (
     slot UInt64 CODEC(DoubleDelta, ZSTD),
     hash String CODEC(ZSTD(5)),
     notify_block_json String CODEC(ZSTD(5)),
+    retrieved_time DateTime64 CODEC(T64, ZSTD),
     INDEX slot_idx slot TYPE set(100) GRANULARITY 2
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/notify_block_local',
     '{replica}'
-)
-PRIMARY KEY (slot, hash)
+) PRIMARY KEY (slot, hash)
+PARTITION BY toYYYYMMDD(retrieved_time)
 ORDER BY (slot, hash)
 SETTINGS index_granularity=8192;
 
@@ -17,7 +18,8 @@ CREATE TABLE IF NOT EXISTS events.notify_block_main ON CLUSTER '{cluster}' AS ev
 ENGINE = Distributed('{cluster}', events, notify_block_local, rand());
 
 CREATE TABLE IF NOT EXISTS events.notify_block_queue ON CLUSTER '{cluster}' (
-    notify_block_json String
+    notify_block_json String,
+    retrieved_time DateTime64 DEFAULT now64()
 )   ENGINE = Kafka SETTINGS
     kafka_broker_list = 'kafka:29092',
     kafka_topic_list = 'notify_block',
