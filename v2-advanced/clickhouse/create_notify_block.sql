@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS events.notify_block_main ON CLUSTER '{cluster}' AS ev
 ENGINE = Distributed('{cluster}', events, notify_block_local, rand());
 
 CREATE TABLE IF NOT EXISTS events.notify_block_queue ON CLUSTER '{cluster}' (
-    notify_block_json String,
+    notify_block_json String
 )   ENGINE = Kafka SETTINGS
     kafka_broker_list = 'kafka:29092',
     kafka_topic_list = 'notify_block',

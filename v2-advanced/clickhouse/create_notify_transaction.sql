@@ -10,13 +10,14 @@ CREATE TABLE IF NOT EXISTS events.notify_transaction_local ON CLUSTER '{cluster}
     '{replica}'
 ) PRIMARY KEY (signature, slot)
 PARTITION BY toYYYYMMDD(retrieved_time)
-ORDER BY (signature, slot);
+ORDER BY (signature, slot)
+SETTINGS index_granularity=8192;
 
 CREATE TABLE IF NOT EXISTS events.notify_transaction_main ON CLUSTER '{cluster}' AS events.notify_transaction_local
 ENGINE = Distributed('{cluster}', events, notify_transaction_local, rand());
 
 CREATE TABLE IF NOT EXISTS events.notify_transaction_queue ON CLUSTER '{cluster}' (
-    notify_transaction_json String,
+    notify_transaction_json String
 )   ENGINE = Kafka SETTINGS
     kafka_broker_list = 'kafka:29092',
     kafka_topic_list = 'notify_transaction',

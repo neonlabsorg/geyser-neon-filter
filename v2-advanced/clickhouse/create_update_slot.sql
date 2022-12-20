@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS events.update_slot_local ON CLUSTER '{cluster}' (
     '{replica}'
 ) PRIMARY KEY(slot)
 PARTITION BY toYYYYMMDD(retrieved_time)
-ORDER BY (slot);
+ORDER BY (slot)
+SETTINGS index_granularity=8192;
 
 CREATE TABLE IF NOT EXISTS events.update_slot_main ON CLUSTER '{cluster}' AS events.update_slot_local ENGINE = Distributed('{cluster}', events, update_slot_local, rand());
 
