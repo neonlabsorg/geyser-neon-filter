@@ -11,15 +11,15 @@ CREATE TABLE IF NOT EXISTS events.update_account_local ON CLUSTER '{cluster}' (
     txn_signature Array(Nullable(UInt8)) CODEC(ZSTD),
     slot UInt64 CODEC(DoubleDelta),
     is_startup Bool CODEC(Gorilla),
-    retrieved_time DateTime64 CODEC(T64, ZSTD),
+    retrieved_time DateTime64 CODEC(DoubleDelta, ZSTD),
     INDEX slot_idx slot TYPE set(100) GRANULARITY 2,
     INDEX write_idx write_version TYPE set(100) GRANULARITY 2
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/update_account_local',
     '{replica}'
 ) PRIMARY KEY (pubkey, slot, write_version)
-ORDER BY (pubkey, slot, write_version)
 PARTITION BY toYYYYMMDD(retrieved_time)
+ORDER BY (pubkey, slot, write_version)
 SETTINGS index_granularity=8192;
 
 CREATE TABLE IF NOT EXISTS events.update_account_main ON CLUSTER '{cluster}' AS events.update_account_local
@@ -45,5 +45,15 @@ CREATE TABLE IF NOT EXISTS events.update_account_queue ON CLUSTER '{cluster}' (
     kafka_format = 'JSONEachRow';
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS events.update_account_queue_mv ON CLUSTER '{cluster}' to events.update_account_local
-AS  SELECT pubkey, lamports, owner, executable, rent_epoch, data, write_version, txn_signature, slot, is_startup
-    FROM events.update_account_queue;
+AS  SELECT pubkey,
+           lamports,
+           owner,
+           executable,
+           rent_epoch,
+           data,
+           write_version,
+           txn_signature,
+           slot,
+           is_startup,
+           retrieved_time
+FROM events.update_account_queue;
