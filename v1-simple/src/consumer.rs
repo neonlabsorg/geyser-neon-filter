@@ -61,6 +61,7 @@ pub async fn consumer<T>(
         .set("sasl.mechanism", &config.sasl_mechanism)
         .set("sasl.username", &config.sasl_username)
         .set("sasl.password", &config.sasl_password)
+        .set("statistics.interval.ms", &config.statistics_interval_ms)
         .set_log_level((&config.kafka_log_level).into())
         .create_with_context(ctx_stats)
         .expect("Consumer creation failed");
@@ -95,14 +96,14 @@ pub async fn consumer<T>(
                             }
                             Err(e) => {
                                 error!("Failed to deserialize {type_name} {e}");
-                                stats.kafka_error_deserialize.inc();
+                                stats.kafka_errors_deserialize.inc();
                             }
                         }
                     });
                 }
             }
             Err(e) => {
-                stats.kafka_error_consumer.inc();
+                stats.kafka_errors_consumer.inc();
                 error!("Kafka consumer error: {}", e);
             }
         };
