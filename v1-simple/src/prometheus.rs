@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     future::Future,
     io,
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -15,26 +16,72 @@ use tokio::signal::unix::{signal, SignalKind};
 
 use crate::consumer_stats::Stats;
 
-pub async fn start_prometheus(stats: Arc<Stats>, port: u16) {
+pub async fn start_prometheus(
+    stats: Arc<Stats>,
+    update_account_topic: Option<String>,
+    update_slot_topic: Option<String>,
+    notify_block_topic: Option<String>,
+    port: u16,
+) {
     let mut registry = <Registry>::default();
 
     registry.register(
-        "kafka_update_account",
+        "kafka_bytes_received",
+        "How many bytes were received from Kafka cluster",
+        Box::new(stats.kafka_bytes_rx.clone()),
+    );
+
+    let registry_with_label = registry.sub_registry_with_label((
+        Cow::Borrowed("topic"),
+        Cow::from(
+            update_account_topic
+                .as_ref()
+                .unwrap_or(&String::new())
+                .clone(),
+        ),
+    ));
+
+    registry_with_label.register(
+        "kafka_messages_received",
         "How many UpdateAccount messages have been received",
         Box::new(stats.kafka_update_account.clone()),
     );
-    registry.register(
-        "kafka_update_slot",
+
+    let registry_with_label = registry.sub_registry_with_label((
+        Cow::Borrowed("topic"),
+        Cow::from(update_slot_topic.as_ref().unwrap_or(&String::new()).clone()),
+    ));
+
+    registry_with_label.register(
+        "kafka_messages_received",
         "How many UpdateSlot messages have been received",
         Box::new(stats.kafka_update_slot.clone()),
     );
-    registry.register(
-        "kafka_notify_transaction",
+
+    // Not used for now
+    let registry_with_label = registry.sub_registry_with_label((
+        Cow::Borrowed("topic"),
+        Cow::from(String::from("notify_transaction")),
+    ));
+
+    registry_with_label.register(
+        "kafka_messages_received",
         "How many NotifyTransaction messages have been received",
         Box::new(stats.kafka_notify_transaction.clone()),
     );
-    registry.register(
-        "kafka_notify_block",
+
+    let registry_with_label = registry.sub_registry_with_label((
+        Cow::Borrowed("topic"),
+        Cow::from(
+            notify_block_topic
+                .as_ref()
+                .unwrap_or(&String::new())
+                .clone(),
+        ),
+    ));
+
+    registry_with_label.register(
+        "kafka_messages_received",
         "How many NotifyBlock messages have been received",
         Box::new(stats.kafka_notify_block.clone()),
     );
@@ -46,7 +93,7 @@ pub async fn start_prometheus(stats: Arc<Stats>, port: u16) {
 async fn start_metrics_server(metrics_addr: SocketAddr, registry: Registry) {
     let mut shutdown_stream = signal(SignalKind::terminate()).unwrap();
 
-    eprintln!("Starting metrics server on {metrics_addr}");
+    println!("Starting metrics server on {metrics_addr}");
 
     let registry = Arc::new(registry);
     Server::bind(&metrics_addr)
@@ -61,7 +108,7 @@ async fn start_metrics_server(metrics_addr: SocketAddr, registry: Registry) {
             shutdown_stream.recv().await;
         })
         .await
-        .unwrap();
+        .expect("Failed to bind hyper server with graceful_shutdown");
 }
 
 fn make_handler(
