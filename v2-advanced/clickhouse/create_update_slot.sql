@@ -13,7 +13,7 @@ PARTITION BY toYYYYMMDD(retrieved_time)
 ORDER BY (slot)
 SETTINGS index_granularity=8192;
 
-CREATE TABLE IF NOT EXISTS events.update_slot_main ON CLUSTER '{cluster}' AS events.update_slot_local ENGINE = Distributed('{cluster}', events, update_slot_local, rand());
+CREATE TABLE IF NOT EXISTS events.update_slot_distributed ON CLUSTER '{cluster}' AS events.update_slot_local ENGINE = Distributed('{cluster}', events, update_slot_local, rand());
 
 CREATE TABLE IF NOT EXISTS events.update_slot_queue ON CLUSTER '{cluster}' (
     slot UInt64,

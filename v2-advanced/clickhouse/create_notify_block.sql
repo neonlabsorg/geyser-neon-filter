@@ -4,8 +4,7 @@ CREATE TABLE IF NOT EXISTS events.notify_block_local ON CLUSTER '{cluster}' (
     slot UInt64 CODEC(DoubleDelta, ZSTD),
     hash String CODEC(ZSTD(5)),
     notify_block_json String CODEC(ZSTD(5)),
-    retrieved_time DateTime64 CODEC(DoubleDelta, ZSTD),
-    INDEX slot_idx slot TYPE set(100) GRANULARITY 2
+    retrieved_time DateTime64 CODEC(DoubleDelta, ZSTD)
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/notify_block_local',
     '{replica}'
@@ -14,7 +13,7 @@ PARTITION BY toYYYYMMDD(retrieved_time)
 ORDER BY (slot, hash)
 SETTINGS index_granularity=8192;
 
-CREATE TABLE IF NOT EXISTS events.notify_block_main ON CLUSTER '{cluster}' AS events.notify_block_local
+CREATE TABLE IF NOT EXISTS events.notify_block_distributed ON CLUSTER '{cluster}' AS events.notify_block_local
 ENGINE = Distributed('{cluster}', events, notify_block_local, rand());
 
 CREATE TABLE IF NOT EXISTS events.notify_block_queue ON CLUSTER '{cluster}' (
