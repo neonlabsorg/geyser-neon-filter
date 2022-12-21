@@ -9,12 +9,15 @@ networks:
           gateway: 10.1.0.1
 
 x-clickhouse-common: &clickhouse-common
-  image: docker.io/clickhouse/clickhouse-server:22.11.2.30-alpine
+  image: docker.io/clickhouse/clickhouse-server:22.12.1.1752-alpine
   ulimits:
     nproc: 65535
     nofile:
       soft: 262144
       hard: 262144
+  depends_on:
+      kafka:
+        condition: service_healthy
 
 services:
   clickhouse01:
@@ -34,6 +37,8 @@ services:
       - "./clickhouse/configs/clickhouse01/shard_replica.xml:/etc/clickhouse-server/config.d/shard_replica.xml"
       - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
       - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
+      - "./clickhouse/configs/common/date_time_input_format.xml:/etc/clickhouse-server/config.d/date_time_input_format.xml"
+      - "./clickhouse/configs/common/log_to_console.xml:/etc/clickhouse-server/config.d/log_to_console.xml"
 
   clickhouse02:
     <<: *clickhouse-common
@@ -52,6 +57,8 @@ services:
       - "./clickhouse/configs/clickhouse02/shard_replica.xml:/etc/clickhouse-server/config.d/shard_replica.xml"
       - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
       - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
+      - "./clickhouse/configs/common/date_time_input_format.xml:/etc/clickhouse-server/config.d/date_time_input_format.xml"
+      - "./clickhouse/configs/common/log_to_console.xml:/etc/clickhouse-server/config.d/log_to_console.xml"
 
   clickhouse03:
     <<: *clickhouse-common
@@ -70,6 +77,8 @@ services:
       - "./clickhouse/configs/clickhouse03/shard_replica.xml:/etc/clickhouse-server/config.d/shard_replica.xml"
       - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
       - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
+      - "./clickhouse/configs/common/date_time_input_format.xml:/etc/clickhouse-server/config.d/date_time_input_format.xml"
+      - "./clickhouse/configs/common/log_to_console.xml:/etc/clickhouse-server/config.d/log_to_console.xml"
 
   clickhouse04:
     <<: *clickhouse-common
@@ -88,8 +97,12 @@ services:
       - "./clickhouse/configs/clickhouse04/shard_replica.xml:/etc/clickhouse-server/config.d/shard_replica.xml"
       - "./clickhouse/configs/common/docker_related_config.xml:/etc/clickhouse-server/config.d/docker_related_config.xml"
       - "./clickhouse/configs/common/clickhouse_servers.xml:/etc/clickhouse-server/config.d/clickhouse_servers.xml"
+      - "./clickhouse/configs/common/date_time_input_format.xml:/etc/clickhouse-server/config.d/date_time_input_format.xml"
+      - "./clickhouse/configs/common/log_to_console.xml:/etc/clickhouse-server/config.d/log_to_console.xml"
   kafka:
     image: docker.io/bitnami/kafka:3.3.1
+    container_name: kafka
+    hostname: kafka
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ENABLE_KRAFT: yes
@@ -99,6 +112,13 @@ services:
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_CFG_MAX_REQUEST_SIZE: 104857600
+      KAFKA_CFG_MESSAGE_MAX_BYTES: 104857600
+      KAFKA_CFG_REPLICA_FETCH_MAX_BYTES: 104857600
+      KAFKA_CFG_SOCKET_RECEIVE_BUFFER_BYTES: 10485760
+      KAFKA_CFG_NUM_REPLICA_FETCHERS: 4
+      KAFKA_CFG_NUM_NETWORK_THREADS: 8
+      KAFKA_CFG_QUEUED_MAX_REQUESTS: 5000
       ALLOW_PLAINTEXT_LISTENER: yes
     ports:
       - 9092:9092
@@ -144,12 +164,17 @@ services:
       - |
         apt update && apt install -y p7zip-full
         7za x /var/json-data/kafka_topics.7z -o/var/json-data/ -aos
-        kafka-console-producer.sh --broker-list kafka:29092 --topic update_slot --property "parse.key=true" < /var/json-data/update_slot.topic
-        kafka-console-producer.sh --broker-list kafka:29092 --topic notify_block --property "parse.key=true" < /var/json-data/notify_block.topic
-        kafka-console-producer.sh --broker-list kafka:29092 --topic notify_transaction --property "parse.key=true" < /var/json-data/notify_transaction.topic
-        kafka-console-producer.sh --broker-list kafka:29092 --topic update_account --property "parse.key=true" < /var/json-data/update_account.topic
+        kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic update_slot --config compression.type=lz4 --config max.message.bytes=104857600
+        kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic notify_block --config compression.type=lz4 --config max.message.bytes=104857600
+        kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic notify_transaction --config compression.type=lz4 --config max.message.bytes=104857600
+        kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic update_account --config compression.type=lz4 --config max.message.bytes=104857600
+        kafka-console-producer.sh --broker-list kafka:29092 --producer.config /etc/kafka/conf/producer.properties --topic update_slot --property "parse.key=true" < /var/json-data/update_slot.topic
+        kafka-console-producer.sh --broker-list kafka:29092 --producer.config /etc/kafka/conf/producer.properties --topic notify_block --property "parse.key=true" < /var/json-data/notify_block.topic
+        kafka-console-producer.sh --broker-list kafka:29092 --producer.config /etc/kafka/conf/producer.properties --topic notify_transaction --property "parse.key=true" < /var/json-data/notify_transaction.topic
+        kafka-console-producer.sh --broker-list kafka:29092 --producer.config /etc/kafka/conf/producer.properties --topic update_account --property "parse.key=true" < /var/json-data/update_account.topic
     volumes:
       - ./json-data/kafka_topics.7z:/var/json-data/kafka_topics.7z
+      - ./producer.properties:/etc/kafka/conf/producer.properties
     depends_on:
       kafka:
         condition: service_healthy
@@ -158,7 +183,7 @@ services:
         ipv4_address: 10.1.0.8
 
   clickhouse-client:
-    image: docker.io/clickhouse/clickhouse-server:22.11.2.30-alpine
+    image: docker.io/clickhouse/clickhouse-server:22.12.1.1752-alpine
     restart: "no"
     volumes:
       - ./clickhouse:/var/clickhouse

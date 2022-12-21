@@ -3,15 +3,17 @@ CREATE DATABASE IF NOT EXISTS events ON CLUSTER 'events';
 CREATE TABLE IF NOT EXISTS events.update_slot_local ON CLUSTER '{cluster}' (
     slot UInt64 CODEC(DoubleDelta, ZSTD),
     parent Nullable(UInt64) default 0 CODEC(DoubleDelta, ZSTD),
-    slot_status Enum('Processed' = 1, 'Rooted' = 2, 'Confirmed' = 3) CODEC(T64, ZSTD),
-    retrieved_time DateTime64 CODEC(T64, ZSTD)
+    slot_status Enum('Processed' = 1, 'Rooted' = 2, 'Confirmed' = 3) CODEC(Gorilla, ZSTD),
+    retrieved_time DateTime64 CODEC(DoubleDelta, ZSTD)
 ) ENGINE = ReplicatedMergeTree(
     '/clickhouse/tables/{shard}/update_slot_local',
     '{replica}'
 ) PRIMARY KEY(slot)
-ORDER BY (slot);
+PARTITION BY toYYYYMMDD(retrieved_time)
+ORDER BY (slot)
+SETTINGS index_granularity=8192;
 
-CREATE TABLE IF NOT EXISTS events.update_slot_main ON CLUSTER '{cluster}' AS events.update_slot_local ENGINE = Distributed('{cluster}', events, update_slot_local, rand());
+CREATE TABLE IF NOT EXISTS events.update_slot_distributed ON CLUSTER '{cluster}' AS events.update_slot_local ENGINE = Distributed('{cluster}', events, update_slot_local, rand());
 
 CREATE TABLE IF NOT EXISTS events.update_slot_queue ON CLUSTER '{cluster}' (
     slot UInt64,
