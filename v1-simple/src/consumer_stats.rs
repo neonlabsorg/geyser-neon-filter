@@ -10,8 +10,8 @@ pub struct Stats {
     pub kafka_update_slot: Counter<u64, AtomicU64>,
     pub kafka_notify_transaction: Counter<u64, AtomicU64>,
     pub kafka_notify_block: Counter<u64, AtomicU64>,
-    pub kafka_error_consumer: Counter<u64, AtomicU64>,
-    pub kafka_error_deserialize: Counter<u64, AtomicU64>,
+    pub kafka_errors_consumer: Counter<u64, AtomicU64>,
+    pub kafka_errors_deserialize: Counter<u64, AtomicU64>,
     pub kafka_bytes_rx: Counter<u64, AtomicU64>,
 }
 

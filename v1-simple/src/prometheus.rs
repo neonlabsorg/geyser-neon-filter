@@ -31,6 +31,18 @@ pub async fn start_prometheus(
         Box::new(stats.kafka_bytes_rx.clone()),
     );
 
+    registry.register(
+        "kafka_errors_consumer",
+        "How many consumer errors occurred",
+        Box::new(stats.kafka_errors_consumer.clone()),
+    );
+
+    registry.register(
+        "kafka_errors_deserialize",
+        "How many deserialize errors occurred",
+        Box::new(stats.kafka_errors_deserialize.clone()),
+    );
+
     let registry_with_label = registry.sub_registry_with_label((
         Cow::Borrowed("topic"),
         Cow::from(

@@ -96,14 +96,14 @@ pub async fn consumer<T>(
                             }
                             Err(e) => {
                                 error!("Failed to deserialize {type_name} {e}");
-                                stats.kafka_error_deserialize.inc();
+                                stats.kafka_errors_deserialize.inc();
                             }
                         }
                     });
                 }
             }
             Err(e) => {
-                stats.kafka_error_consumer.inc();
+                stats.kafka_errors_consumer.inc();
                 error!("Kafka consumer error: {}", e);
             }
         };
