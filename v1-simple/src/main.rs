@@ -50,7 +50,13 @@ async fn run(mut config: FilterConfig) {
 
     let ctx_stats = ContextWithStats::default();
 
-    let prometheus = tokio::spawn(start_prometheus(ctx_stats.stats.clone(), prometheus_port));
+    let prometheus = tokio::spawn(start_prometheus(
+        ctx_stats.stats.clone(),
+        config.update_account_topic.clone(),
+        config.update_slot_topic.clone(),
+        config.notify_block_topic.clone(),
+        prometheus_port,
+    ));
 
     let update_account_topic = config
         .update_account_topic
@@ -128,7 +134,7 @@ async fn run(mut config: FilterConfig) {
         block_filter,
         slot_filter,
         db_stmt_executor,
-        prometheus,
+        prometheus
     );
 }
 
