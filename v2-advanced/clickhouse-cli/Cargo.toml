@@ -1,0 +1,13 @@
+[package]
+name = "clickhouse-cli"
+version = "1.0.0"
+edition = "2021"
+description = "Neon geyser filter"
+authors = ["NeonLabs Maintainers <maintainers@neonlabs.org>"]
+
+[dependencies]
+tokio = { version = "1.24.1", features = ["rt", "macros"] }
+clickhouse = "0.11.2"
+
+[dev-dependencies]
+clickhouse = { version = "0.11.2", features = ["test-util"] }

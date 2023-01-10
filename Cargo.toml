@@ -2,7 +2,8 @@
 resolver = "2"
 
 members = [
-    "v1-simple"
+    "v1-simple",
+    "v2-advanced/clickhouse-cli"
 ]
 
 [profile.release]

@@ -28,19 +28,19 @@ pub async fn start_prometheus(
     registry.register(
         "kafka_bytes_received",
         "How many bytes were received from Kafka cluster",
-        Box::new(stats.kafka_bytes_rx.clone()),
+        stats.kafka_bytes_rx.clone(),
     );
 
     registry.register(
         "kafka_errors_consumer",
         "How many consumer errors occurred",
-        Box::new(stats.kafka_errors_consumer.clone()),
+        stats.kafka_errors_consumer.clone(),
     );
 
     registry.register(
         "kafka_errors_deserialize",
         "How many deserialize errors occurred",
-        Box::new(stats.kafka_errors_deserialize.clone()),
+        stats.kafka_errors_deserialize.clone(),
     );
 
     let registry_with_label = registry.sub_registry_with_label((
@@ -56,7 +56,7 @@ pub async fn start_prometheus(
     registry_with_label.register(
         "kafka_messages_received",
         "How many UpdateAccount messages have been received",
-        Box::new(stats.kafka_update_account.clone()),
+        stats.kafka_update_account.clone(),
     );
 
     let registry_with_label = registry.sub_registry_with_label((
@@ -67,7 +67,7 @@ pub async fn start_prometheus(
     registry_with_label.register(
         "kafka_messages_received",
         "How many UpdateSlot messages have been received",
-        Box::new(stats.kafka_update_slot.clone()),
+        stats.kafka_update_slot.clone(),
     );
 
     // Not used for now
@@ -79,7 +79,7 @@ pub async fn start_prometheus(
     registry_with_label.register(
         "kafka_messages_received",
         "How many NotifyTransaction messages have been received",
-        Box::new(stats.kafka_notify_transaction.clone()),
+        stats.kafka_notify_transaction.clone(),
     );
 
     let registry_with_label = registry.sub_registry_with_label((
@@ -95,7 +95,7 @@ pub async fn start_prometheus(
     registry_with_label.register(
         "kafka_messages_received",
         "How many NotifyBlock messages have been received",
-        Box::new(stats.kafka_notify_block.clone()),
+        stats.kafka_notify_block.clone(),
     );
 
     let metrics_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
@@ -130,7 +130,7 @@ fn make_handler(
     move |_req: Request<Body>| {
         let reg = registry.clone();
         Box::pin(async move {
-            let mut buf = Vec::new();
+            let mut buf = String::new();
             encode(&mut buf, &reg.clone())
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
                 .map(|_| {
